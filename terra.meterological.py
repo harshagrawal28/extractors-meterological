@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 
 """
-terra.hyperspectral.py
+terra.meterological.py
 
 This extractor will trigger when a file is added to a dataset in Clowder.
-It checks if all the required input files are present in the dataset while the
-output file is not present. The output filename is always determined from the
-filename of the `_raw` file.
-If the check is OK, it calls the `workerScript` defined in the config file to
-create a netCDF output file and adds that to the same dataset.
+It checks if all the required input files are present in the dataset and no metadata
+indicating the dataset has already been processed.
+If the check is OK, it aggregates all input files into one JSON and inserts it into
+GeoStream.
 """
 
 import os
@@ -38,8 +37,8 @@ def main():
 def check_message(parameters):
 	# Check for expected input files before beginning processing
 	if has_all_files(parameters):
-		if has_output_file(parameters):
-			print 'skipping, output file already exists'
+		if has_been_handled(parameters):
+			print 'skipping, dataset already handled'
 			return False
 		else:
 			# Handle the message but do not download any files automatically.
@@ -105,9 +104,12 @@ def process_dataset(parameters):
 # Find as many expected files as possible and return the set.
 def get_all_files(parameters):
 	global requiredInputFiles
+
+	# `files` is a dictionary of arrays of file descriptors.
+	# files: {Dict.<List.<File>>}
 	files = dict()
 	for fileExt in requiredInputFiles:
-		files[fileExt] = None
+		files[fileExt] = []
 
 	if 'filelist' in parameters:
 		for fileItem in parameters['filelist']:
@@ -115,10 +117,10 @@ def get_all_files(parameters):
 			fileName = fileItem['filename']
 			for fileExt in files:
 				if fileName[-len(fileExt):] == fileExt:
-					files[fileExt] = {
+					files[fileExt].append({
 						'id': fileId,
 						'filename': fileName
-					}
+					})
 	return files
 
 # ----------------------------------------------------------------------
@@ -129,28 +131,32 @@ def get_output_filename(raw_filename):
 # ----------------------------------------------------------------------
 # Returns true if all expected files are found.
 def has_all_files(parameters):
+	global requiredInputFiles
+
 	files = get_all_files(parameters)
 	allFilesFound = True
-	for fileExt in files:
-		if files[fileExt] == None:
+	for fileExt in requiredInputFiles:
+		if len(files[fileExt]) < requiredInputFiles[fileExt]:
 			allFilesFound = False
 	return allFilesFound
 
 # ----------------------------------------------------------------------
-# Returns true if the output file is present.
-def has_output_file(parameters):
+# Returns true if the dataset has been handled.
+def has_been_handled(parameters):
 	if 'filelist' not in parameters:
 		return False
 	if not has_all_files(parameters):
 		return False
-	files = get_all_files(parameters)
-	outFilename = get_output_filename(files['_raw']['filename'])
-	outFileFound = False
-	for fileItem in parameters['filelist']:
-		if outFilename == fileItem['filename']:
-			outFileFound = True
-			break
-	return outFileFound
+	#! Check metadata.
+	return False
+# 	files = get_all_files(parameters)
+# 	outFilename = get_output_filename(files['_raw']['filename'])
+# 	outFileFound = False
+# 	for fileItem in parameters['filelist']:
+# 		if outFilename == fileItem['filename']:
+# 			outFileFound = True
+# 			break
+# 	return outFileFound
 
 if __name__ == "__main__":
 	main()
