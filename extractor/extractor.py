@@ -52,6 +52,10 @@ def check_message(parameters):
 def process_dataset(parameters):
 	global extractorName, workerScript, inputDirectory, outputDirectory
 
+	print parameters
+	print 'Extractor Running'
+	return False
+
 	# Find input files in dataset
 	files = get_all_files(parameters)
 

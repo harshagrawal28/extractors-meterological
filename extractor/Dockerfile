@@ -107,16 +107,12 @@ RUN mkdir -p "${INPUTDIR}" && \
     mkdir -p "${USERHOME}/logs" \
     mkdir -p "${USERHOME}/test-data"
 
-## download test input data
-RUN wget -q http://141.142.168.44/nfiedata/yanliu/terraref-hyperspectral-input-sample.tgz && \
-    tar -xf terraref-hyperspectral-input-sample.tgz -C "./test-data" --strip-components 1
-
 ## install extractor
 ENV RABBITMQ_URI="" \
     RABBITMQ_EXCHANGE="clowder" \
     RABBITMQ_VHOST="%2F" \
-    RABBITMQ_QUEUE="terra.hyperspectral" \
-    WORKER_SCRIPT="${PIPELINEDIR}/scripts/hyperspectral/terraref.sh"
-COPY entrypoint.sh extractor_info.json config.py terra.hyperspectral.py ./
+    RABBITMQ_QUEUE="terra.meterological" \
+    WORKER_SCRIPT="..."
+COPY entrypoint.sh extractor_info.json config.py extractor.py ./
 ENTRYPOINT ["./entrypoint.sh"]
-CMD ["python", "./terra.hyperspectral.py"]
+CMD ["python", "./extractor.py"]
