@@ -11,6 +11,8 @@ GeoStream.
 """
 
 import os
+import csv
+import json
 import subprocess
 import logging
 from config import *
@@ -52,56 +54,43 @@ def check_message(parameters):
 def process_dataset(parameters):
 	global extractorName, workerScript, inputDirectory, outputDirectory
 
-	print parameters
 	print 'Extractor Running'
-	return False
 
 	# Find input files in dataset
-	files = get_all_files(parameters)
+	fileExt = '.dat'
+	files = get_all_files(parameters)[fileExt]
 
 	# Download files to input directory
-	for fileExt in files:
-		files[fileExt]['path'] = extractors.download_file(
+	for file in files:
+		file['path'] = extractors.download_file(
 			channel            = parameters['channel'],
 			header             = parameters['header'],
 			host               = parameters['host'],
 			key                = parameters['secretKey'],
-			fileid             = files[fileExt]['id'],
+			fileid             = file['id'],
 			# What's this argument for?
-			intermediatefileid = files[fileExt]['id'],
+			intermediatefileid = file['id'],
 			ext                = fileExt
 		)
 		# Restore temp filenames to original - script requires specific name formatting so tmp names aren't suitable
-		files[fileExt]['old_path'] = files[fileExt]['path']
-		files[fileExt]['path'] = os.path.join(inputDirectory, files[fileExt]['filename'])
-		os.rename(files[fileExt]['old_path'], files[fileExt]['path'])
-		print 'found %s file: %s' % (fileExt, files[fileExt]['path'])
+		file['old_path'] = file['path']
+		file['path'] = os.path.join(inputDirectory, file['filename'])
+		os.rename(file['old_path'], file['path'])
+		print 'found %s file: %s' % (fileExt, file['path'])
 
-	# Invoke terraref.sh
-	outFilePath = os.path.join(outputDirectory, get_output_filename(files['_raw']['filename']))
-	print 'invoking terraref.sh to create: %s' % outFilePath
-	returncode = subprocess.call(["bash", workerScript, "-d", "1", "-I", inputDirectory, "-O", outputDirectory])
-	print 'done creating output file (%s)' % (returncode)
+	#print json.dumps(files)
 
-	if returncode != 0:
-		print 'terraref.sh encountered an error'
+	# Process each file and concatenate results together.
+	records = []
+	for file in files:
+		records += parse_file(file['path']);
 
-	# Verify outfile exists and upload to clowder
-	if os.path.exists(outFilePath):
-		print 'output file detected'
-		if returncode == 0:
-			print 'uploading output file...'
-			extractors.upload_file_to_dataset(filepath=outFilePath, parameters=parameters)
-			print 'done uploading'
-		# Clean up the output file.
-		os.remove(outFilePath)
-	else:
-		print 'no output file was produced'
+	#! Save records as JSON back to GeoStream.
 
 	print 'cleaning up...'
 	# Clean up the input files.
-	for fileExt in files:
-		os.remove(files[fileExt]['path'])
+	for file in files:
+		os.remove(file['path'])
 	print 'done cleaning'
 
 # ----------------------------------------------------------------------
@@ -161,6 +150,22 @@ def has_been_handled(parameters):
 # 			outFileFound = True
 # 			break
 # 	return outFileFound
+
+# ----------------------------------------------------------------------
+# Parse the CSV file and return a list of dictionaries.
+def parse_file(filepath):
+	with open(filepath) as csvfile:
+		# Skip first 4 lines.
+		line1 = csvfile.readline()
+		line2 = csvfile.readline()
+		line3 = csvfile.readline()
+		line4 = csvfile.readline()
+
+		#! fieldnames is from line2.
+		reader = csv.DictReader(csvfile, fieldnames=["TIMESTAMP","RECORD","BattV","PTemp_C","AirTC","RH","Pyro","PAR_ref","WindDir","WS_ms","Rain_mm_Tot"])
+		for row in reader:
+			print(row['TIMESTAMP'], row['RECORD'])
+	return []
 
 if __name__ == "__main__":
 	main()
