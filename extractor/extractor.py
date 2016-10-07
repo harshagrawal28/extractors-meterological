@@ -16,6 +16,7 @@ import json
 import subprocess
 import logging
 from config import *
+from parser import *
 import pyclowder.extractors as extractors
 
 
@@ -52,7 +53,7 @@ def check_message(parameters):
 # ----------------------------------------------------------------------
 # Process the dataset message and upload the results
 def process_dataset(parameters):
-	global extractorName, workerScript, inputDirectory, outputDirectory
+	global parse_file, extractorName, workerScript, inputDirectory, outputDirectory
 
 	print 'Extractor Running'
 
@@ -85,7 +86,10 @@ def process_dataset(parameters):
 	for file in files:
 		records += parse_file(file['path']);
 
+	print records
+
 	#! Save records as JSON back to GeoStream.
+	# @see {@link https://opensource.ncsa.illinois.edu/bitbucket/projects/GEOD/repos/seagrant-parsers-py/browse/SeaBird/seabird-import.py}
 
 	print 'cleaning up...'
 	# Clean up the input files.
@@ -150,22 +154,6 @@ def has_been_handled(parameters):
 # 			outFileFound = True
 # 			break
 # 	return outFileFound
-
-# ----------------------------------------------------------------------
-# Parse the CSV file and return a list of dictionaries.
-def parse_file(filepath):
-	with open(filepath) as csvfile:
-		# Skip first 4 lines.
-		line1 = csvfile.readline()
-		line2 = csvfile.readline()
-		line3 = csvfile.readline()
-		line4 = csvfile.readline()
-
-		#! fieldnames is from line2.
-		reader = csv.DictReader(csvfile, fieldnames=["TIMESTAMP","RECORD","BattV","PTemp_C","AirTC","RH","Pyro","PAR_ref","WindDir","WS_ms","Rain_mm_Tot"])
-		for row in reader:
-			print(row['TIMESTAMP'], row['RECORD'])
-	return []
 
 if __name__ == "__main__":
 	main()
