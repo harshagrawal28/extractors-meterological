@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import math
+import datetime
 import csv
 import json
 
@@ -114,9 +115,9 @@ def parse_file(filepath):
 		for row in reader:
 			results.append({
 				'id': '???',
-				'created': '???',
-				'start_time': '???', #! How to format time?
-				'end_time': '???',
+				'created': datetime.datetime.utcnow().isoformat(),
+				'start_time': datetime.datetime.strptime(row['TIMESTAMP'], '%Y-%m-%d %H:%M:%S').isoformat(),
+				'end_time': datetime.datetime.strptime(row['TIMESTAMP'], '%Y-%m-%d %H:%M:%S').isoformat(),
 				'properties': transformProps(props, row),
 # 				dict( map(lambda key: ( PROP_MAPPING[key], {
 # 					'value': row[key],
