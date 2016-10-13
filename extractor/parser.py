@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import math
 import csv
 import json
 
@@ -25,12 +26,10 @@ def speedUnit2MeterPerSecond(value, unit):
 	else:
 		raise ValueError('Unsupported unit "%s".' % unit)
 
-#!
 def extractXFactor(magnitude, degreeFromNorth):
-	return 1
-#!
+	return magnitude * math.sin(math.radians(degreeFromNorth));
 def extractYFactor(magnitude, degreeFromNorth):
-	return 1
+	return magnitude * math.cos(math.radians(degreeFromNorth));
 
 # 'AirTC': 'air_temperature',
 # 'RH': 'relative_humidity',
