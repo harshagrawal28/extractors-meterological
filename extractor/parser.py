@@ -132,11 +132,6 @@ def parse_file(filepath):
 				'start_time': datetime.datetime.strptime(row['TIMESTAMP'], '%Y-%m-%d %H:%M:%S').isoformat(),
 				'end_time': datetime.datetime.strptime(row['TIMESTAMP'], '%Y-%m-%d %H:%M:%S').isoformat(),
 				'properties': transformProps(props, row),
-# 				dict( map(lambda key: ( PROP_MAPPING[key], {
-# 					'value': row[key],
-# 					'unit': props[key]['unit'],
-# 					'sample_method': props[key]['sample_method']
-# 				} ), list(set(prop_names) & set(PROP_MAPPING))) ),
 				'type': 'Feature',
 				'geometry': {
 					'type': 'Point',
