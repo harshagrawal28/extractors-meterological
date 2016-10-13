@@ -85,20 +85,33 @@ def transformProps(propMetaDict, propValDict):
 			})
 	return dict(newProps)
 
+def parse_file_header_line(linestr):
+	return map(lambda x: json.loads(x), str(linestr).split(','))
+
 # ----------------------------------------------------------------------
 # Parse the CSV file and return a list of dictionaries.
 def parse_file(filepath):
 	results = []
 	with open(filepath) as csvfile:
-		# Consume first 4 lines.
-		line1 = csvfile.readline()
-		line2 = csvfile.readline()
-		line3 = csvfile.readline()
-		line4 = csvfile.readline()
+		# First line is always the header.
+		# @see {@link https://www.manualslib.com/manual/538296/Campbell-Cr9000.html?page=41#manual}
+		header_lines = [
+			csvfile.readline()
+		]
 
-		prop_names = map(lambda x: x.split('"')[1], line2.split(','))
-		prop_units = map(lambda x: x.split('"')[1], line3.split(','))
-		prop_sample_method = map(lambda x: x.split('"')[1], line4.split(','))
+		file_format, station_name, logger_model, logger_serial, os_version, dld_file, dld_sig, table_name = parse_file_header_line(header_lines[0])
+
+		if file_format != 'TOA5':
+			raise ValueError('Unsupported format "%s".' % file_format)
+
+		# For TOA5, there are in total 4 header lines.
+		# @see {@link https://www.manualslib.com/manual/538296/Campbell-Cr9000.html?page=43#manual}
+		while (len(header_lines) < 4):
+			header_lines.append(csvfile.readline())
+
+		prop_names = parse_file_header_line(header_lines[1])
+		prop_units = parse_file_header_line(header_lines[2])
+		prop_sample_method = parse_file_header_line(header_lines[3])
 
 		# Associate the above lists.
 		props = dict()
