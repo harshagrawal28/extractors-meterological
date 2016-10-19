@@ -50,12 +50,50 @@ def check_message(parameters):
 		print 'skipping, not all input files are ready'
 		return False
 
+# Get stream ID from Clowder based on stream name
+def get_stream_id(host, key, name):
+	if (not host.endswith("/")):
+		host = host + "/"
+
+	url = "%sapi/geostreams/streams?stream_name=%s&key=%s" % (host, name, key)
+	print("...searching for stream ID: "+url)
+	r = requests.get(url)
+	if r.status_code == 200:
+		json_data = r.json()
+		for s in json_data:
+			if 'name' in s and s['name'] == name:
+				return s['id']
+			else:
+				print("error searching for stream ID")
+
+	return None
+
 # ----------------------------------------------------------------------
 # Process the dataset message and upload the results
 def process_dataset(parameters):
-	global parse_file, extractorName, inputDirectory, outputDirectory, restEndPoint, sensorId, streamId
+	global parse_file, extractorName, inputDirectory, outputDirectory, restEndPoint, sensorId, streamName
 
 	print 'Extractor Running'
+
+	# Look for stream.
+	streamId = get_stream_id(restEndPoint, parameters['secretKey'], streamName)
+	if streamId == None:
+		raise LookupError('Unable to find stream with name "%s".' % streamName)
+#! The following is not Working.
+# 		headers = {'Content-type': 'application/json'}
+# 		body = {
+# 			"name": streamName,
+# 			"type": "point",
+# 			"geometry": {
+# 				"type": "Point",
+# 				"coordinates": [0, 0, 0]
+# 			},
+# 			"properties": {},
+# 			"sensor_id": str(sensorId)
+# 		}
+# 		r = requests.post("%s/api/geostreams/streams?key=%s" % (restEndPoint, parameters['secretKey']), data=json.dumps(body), headers=headers)
+# 		if (r.status_code != 200):
+# 			print("ERR  : Problem creating stream : [" + str(r.status_code) + "] - " + r.text)
 
 	# Find input files in dataset
 	fileExt = '.dat'
@@ -86,7 +124,7 @@ def process_dataset(parameters):
 	for file in files:
 		records += parse_file(file['path'], sensorId, streamId);
 
-	print records
+	print json.dumps(records)
 
 	#! Save records as JSON back to GeoStream.
 	# @see {@link https://opensource.ncsa.illinois.edu/bitbucket/projects/GEOD/repos/seagrant-parsers-py/browse/SeaBird/seabird-import.py}

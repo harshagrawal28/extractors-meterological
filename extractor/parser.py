@@ -143,8 +143,8 @@ def parse_file(filepath, sensorId, streamId):
 						0
 					]
 				},
-				'sensor_id': sensorId,
-				'stream_id': streamId
+				'sensor_id': str(sensorId),
+				'stream_id': str(streamId)
 			})
 	return results
 
