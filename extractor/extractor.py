@@ -76,7 +76,7 @@ def dataset_has_tag(host, datasetId, tag, key):
 		print("ERR  : Problem getting dataset tags : [" + str(r.status_code) + "] - " + r.text)
 	else:
 		json_data = r.json()
-		if tag in json_data['tags']
+		if tag in json_data['tags']:
 			return True
 	return False
 
