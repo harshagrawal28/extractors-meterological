@@ -112,7 +112,7 @@ ENV RABBITMQ_URI="" \
     RABBITMQ_EXCHANGE="clowder" \
     RABBITMQ_VHOST="%2F" \
     RABBITMQ_QUEUE="terra.meterological" \
-    WORKER_SCRIPT="..."
+    CLOWDER_URI=""
 COPY entrypoint.sh extractor_info.json *.py ./
 ENTRYPOINT ["./entrypoint.sh"]
 CMD ["python", "./extractor.py"]

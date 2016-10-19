@@ -13,7 +13,7 @@ GeoStream.
 import os
 import csv
 import json
-import subprocess
+import requests
 import logging
 from config import *
 from parser import *
@@ -53,7 +53,7 @@ def check_message(parameters):
 # ----------------------------------------------------------------------
 # Process the dataset message and upload the results
 def process_dataset(parameters):
-	global parse_file, extractorName, inputDirectory, outputDirectory, sensorId, streamId
+	global parse_file, extractorName, inputDirectory, outputDirectory, restEndPoint, sensorId, streamId
 
 	print 'Extractor Running'
 
@@ -90,6 +90,11 @@ def process_dataset(parameters):
 
 	#! Save records as JSON back to GeoStream.
 	# @see {@link https://opensource.ncsa.illinois.edu/bitbucket/projects/GEOD/repos/seagrant-parsers-py/browse/SeaBird/seabird-import.py}
+	for record in records:
+		headers = {'Content-type': 'application/json'}
+		r = requests.post("%s/api/geostreams/datapoints?key=%s" % (restEndPoint, parameters['secretKey']), data=json.dumps(record), headers=headers)
+		if (r.status_code != 200):
+			print("ERR  : Problem creating datapoint : [" + str(r.status_code) + "] - " + r.text)
 
 	print 'cleaning up...'
 	# Clean up the input files.
