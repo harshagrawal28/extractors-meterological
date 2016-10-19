@@ -40,5 +40,6 @@ requiredInputFiles = {
 
 restEndPoint = os.getenv('CLOWDER_URI', "http://localhost:9001")
 
+filter_tag = "meteorology_extracted"
 sensorId = -1 #! Put real value here. Somebody has to ensure this exists.
 streamName = "weather station"

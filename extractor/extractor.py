@@ -68,10 +68,37 @@ def get_stream_id(host, key, name):
 
 	return None
 
+# Check if the dataset has the tag.
+def dataset_has_tag(host, datasetId, tag, key):
+	headers = {'Content-type': 'application/json'}
+	r = requests.get("%s/api/datasets/%s/tags?key=%s" % (restEndPoint, datasetId, key), headers=headers)
+	if (r.status_code != 200):
+		print("ERR  : Problem getting dataset tags : [" + str(r.status_code) + "] - " + r.text)
+	else:
+		json_data = r.json()
+		if tag in json_data['tags']
+			return True
+	return False
+
+# Add a tag to the dataset.
+def dataset_add_tag(host, datasetId, tag, key):
+	headers = {'Content-type': 'application/json'}
+	body = {
+		"tags": [
+			tag
+		]
+	}
+	r = requests.post("%s/api/datasets/%s/tags?key=%s" % (restEndPoint, datasetId, key), data=json.dumps(body), headers=headers)
+	if (r.status_code != 200):
+		print("ERR  : Problem adding dataset tag : [" + str(r.status_code) + "] - " + r.text)
+	else:
+		return True
+	return False
+
 # ----------------------------------------------------------------------
 # Process the dataset message and upload the results
 def process_dataset(parameters):
-	global parse_file, extractorName, inputDirectory, outputDirectory, restEndPoint, sensorId, streamName
+	global parse_file, extractorName, inputDirectory, outputDirectory, restEndPoint, filter_tag, sensorId, streamName
 
 	print 'Extractor Running'
 
@@ -134,6 +161,9 @@ def process_dataset(parameters):
 		if (r.status_code != 200):
 			print("ERR  : Problem creating datapoint : [" + str(r.status_code) + "] - " + r.text)
 
+	# Mark dataset as processed.
+	dataset_add_tag(restEndPoint, parameters['datasetId'], filter_tag, parameters['secretKey'])
+
 	print 'cleaning up...'
 	# Clean up the input files.
 	for file in files:
@@ -183,20 +213,16 @@ def has_all_files(parameters):
 # ----------------------------------------------------------------------
 # Returns true if the dataset has been handled.
 def has_been_handled(parameters):
+	global filter_tag
+
 	if 'filelist' not in parameters:
 		return False
 	if not has_all_files(parameters):
 		return False
-	#! Check metadata.
+	# Check tags.
+	if dataset_has_tag(restEndPoint, parameters['datasetId'], filter_tag, parameters['secretKey']):
+		return True
 	return False
-# 	files = get_all_files(parameters)
-# 	outFilename = get_output_filename(files['_raw']['filename'])
-# 	outFileFound = False
-# 	for fileItem in parameters['filelist']:
-# 		if outFilename == fileItem['filename']:
-# 			outFileFound = True
-# 			break
-# 	return outFileFound
 
 if __name__ == "__main__":
 	main()
