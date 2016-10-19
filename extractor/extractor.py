@@ -53,7 +53,7 @@ def check_message(parameters):
 # ----------------------------------------------------------------------
 # Process the dataset message and upload the results
 def process_dataset(parameters):
-	global parse_file, extractorName, workerScript, inputDirectory, outputDirectory
+	global parse_file, extractorName, inputDirectory, outputDirectory, sensorId, streamId
 
 	print 'Extractor Running'
 
@@ -84,7 +84,7 @@ def process_dataset(parameters):
 	# Process each file and concatenate results together.
 	records = []
 	for file in files:
-		records += parse_file(file['path']);
+		records += parse_file(file['path'], sensorId, streamId);
 
 	print records
 

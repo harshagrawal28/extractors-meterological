@@ -27,9 +27,6 @@ messageType = "*.dataset.file.added"
 # trust certificates, set this to false for self signed certificates
 sslVerify = os.getenv('RABBITMQ_SSLVERIFY', False)
 
-# Location of terraref.sh
-workerScript = os.getenv('WORKER_SCRIPT', "terraref.sh")
-
 # Workspace for input/output files.
 inputDirectory = os.getenv('INPUTDIR', "./input")
 outputDirectory = os.getenv('OUTPUTDIR', "./output")
@@ -40,3 +37,6 @@ outputDirectory = os.getenv('OUTPUTDIR', "./output")
 requiredInputFiles = {
 	'.dat': 24
 }
+
+sensorId = -1 #! Put real value here. Somebody has to ensure this exists.
+streamId = -1 #! Put real value here. Somebody has to ensure this exists.

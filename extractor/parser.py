@@ -90,7 +90,7 @@ def parse_file_header_line(linestr):
 
 # ----------------------------------------------------------------------
 # Parse the CSV file and return a list of dictionaries.
-def parse_file(filepath):
+def parse_file(filepath, sensorId, streamId):
 	results = []
 	with open(filepath) as csvfile:
 		# First line is always the header.
@@ -127,7 +127,7 @@ def parse_file(filepath):
 		reader = csv.DictReader(csvfile, fieldnames=prop_names)
 		for row in reader:
 			results.append({
-				'id': '???',
+				#'id': '???',
 				'created': datetime.datetime.utcnow().isoformat(),
 				'start_time': datetime.datetime.strptime(row['TIMESTAMP'], '%Y-%m-%d %H:%M:%S').isoformat(),
 				'end_time': datetime.datetime.strptime(row['TIMESTAMP'], '%Y-%m-%d %H:%M:%S').isoformat(),
@@ -136,14 +136,15 @@ def parse_file(filepath):
 				'geometry': {
 					'type': 'Point',
 					'coordinates': [
-						'???',
-						'???',
-						'???'
+						# SW Corner.
+						# @see {@link https://github.com/terraref/extractors-metadata/blob/master/sensorposition/terra.sensorposition.py#L68}
+						33.0745666667,
+						-111.9750833333,
+						0
 					]
 				},
-				'stream_id': '???',
-				'sensor_id': '???', #! Site?
-				'sensor_name': '???' #! Site?
+				'sensor_id': sensorId,
+				'stream_id': streamId
 			})
 	return results
 
