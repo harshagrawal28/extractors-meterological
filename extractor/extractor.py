@@ -82,8 +82,11 @@ def dataset_has_tag(host, datasetId, tag, key):
 
 # Add a tag to the dataset.
 def dataset_add_tag(host, datasetId, tag, key):
+	global extractorName
+
 	headers = {'Content-type': 'application/json'}
 	body = {
+		"extractor_id": extractorName,
 		"tags": [
 			tag
 		]
