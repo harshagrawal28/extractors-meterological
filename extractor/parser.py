@@ -90,7 +90,7 @@ def parse_file_header_line(linestr):
 
 # ----------------------------------------------------------------------
 # Parse the CSV file and return a list of dictionaries.
-def parse_file(filepath, sensorId, streamId, utc_offset):
+def parse_file(filepath, utc_offset = 'Z'):
 	results = []
 	with open(filepath) as csvfile:
 		# First line is always the header.
@@ -128,8 +128,6 @@ def parse_file(filepath, sensorId, streamId, utc_offset):
 		for row in reader:
 			timestamp = datetime.datetime.strptime(row['TIMESTAMP'], '%Y-%m-%d %H:%M:%S').isoformat() + str(utc_offset)
 			results.append({
-				#'id': '???',
-				#'created': datetime.datetime.utcnow().isoformat(),
 				'start_time': timestamp,
 				'end_time': timestamp,
 				'properties': transformProps(props, row),
@@ -143,9 +141,7 @@ def parse_file(filepath, sensorId, streamId, utc_offset):
 						-111.9750833333,
 						0
 					]
-				},
-				'sensor_id': str(sensorId),
-				'stream_id': str(streamId)
+				}
 			})
 	return results
 

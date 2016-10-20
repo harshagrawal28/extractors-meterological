@@ -152,7 +152,10 @@ def process_dataset(parameters):
 	# Process each file and concatenate results together.
 	records = []
 	for file in files:
-		records += parse_file(file['path'], sensorId, streamId, utc_offset=ISO_8601_UTC_OFFSET);
+		newRecord = parse_file(file['path'], utc_offset=ISO_8601_UTC_OFFSET)
+		newRecord['sensor_id'] = str(sensorId)
+		newRecord['stream_id'] = str(streamId)
+		records += newRecord
 
 	print json.dumps(records)
 
