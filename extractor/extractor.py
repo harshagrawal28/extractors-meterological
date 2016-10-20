@@ -98,7 +98,7 @@ def dataset_add_tag(host, datasetId, tag, key):
 # ----------------------------------------------------------------------
 # Process the dataset message and upload the results
 def process_dataset(parameters):
-	global parse_file, extractorName, inputDirectory, outputDirectory, restEndPoint, filter_tag, sensorId, streamName
+	global parse_file, extractorName, inputDirectory, outputDirectory, restEndPoint, filter_tag, sensorId, streamName, ISO_8601_UTC_OFFSET
 
 	print 'Extractor Running'
 
@@ -149,7 +149,7 @@ def process_dataset(parameters):
 	# Process each file and concatenate results together.
 	records = []
 	for file in files:
-		records += parse_file(file['path'], sensorId, streamId);
+		records += parse_file(file['path'], sensorId, streamId, utc_offset=ISO_8601_UTC_OFFSET);
 
 	print json.dumps(records)
 
