@@ -1,6 +1,6 @@
 #!/bin/bash
 
 name=$(basename "$(pwd)")
-echo "docker run --rm -i -t --name \"terra_${name}_1\" --link clowder_rabbitmq_1:rabbitmq \"terra_${name}\""
-docker run --rm -i -t --name "terra_${name}_1" --link clowder_rabbitmq_1:rabbitmq "terra_${name}"
+echo "docker run --rm -i -t --name \"terra_${name}_1\" --link clowder_rabbitmq_1:rabbitmq \"terra_${name}\" $1"
+docker run --rm -i -t --name "terra_${name}_1" --link clowder_rabbitmq_1:rabbitmq "terra_${name}" $1
 
