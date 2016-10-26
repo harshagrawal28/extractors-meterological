@@ -14,6 +14,8 @@ import os
 import csv
 import json
 import requests
+import urllib
+import urlparse
 import logging
 from config import *
 from parser import *
@@ -52,13 +54,17 @@ def check_message(parameters):
 
 # Get stream ID from Clowder based on stream name
 def get_stream_id(host, key, name):
-	if (not host.endswith("/")):
-		host = host + "/"
 
-	url = "%sapi/geostreams/streams?stream_name=%s&key=%s" % (host, name, key)
+	url = urlparse.urljoin(host, 'api/geostreams/streams?%s' % urllib.urlencode({
+		"stream_name": name,
+		"key": key
+	}))
+
 	print("...searching for stream ID: "+url)
 	r = requests.get(url)
-	if r.status_code == 200:
+	if (r.status_code != 200):
+		print("ERR  : Problem searching stream ID : [" + str(r.status_code) + "] - " + r.text)
+	else:
 		json_data = r.json()
 		for s in json_data:
 			if 'name' in s and s['name'] == name:
@@ -70,8 +76,13 @@ def get_stream_id(host, key, name):
 
 # Check if the dataset has the tag.
 def dataset_has_tag(host, datasetId, tag, key):
+
+	url = urlparse.urljoin(host, 'api/datasets/%s/tags?key=%s' % (datasetId, key))
+
+	print 'Check Dataset Tag: ' + url
+
 	headers = {'Content-type': 'application/json'}
-	r = requests.get("%s/api/datasets/%s/tags?key=%s" % (host, datasetId, key), headers=headers)
+	r = requests.get(url, headers=headers)
 	if (r.status_code != 200):
 		print("ERR  : Problem getting dataset tags : [" + str(r.status_code) + "] - " + r.text)
 	else:
@@ -84,6 +95,8 @@ def dataset_has_tag(host, datasetId, tag, key):
 def dataset_add_tag(host, datasetId, tag, key):
 	global extractorName
 
+	url = urlparse.urljoin(host, 'api/datasets/%s/tags?key=%s' % (datasetId, key))
+
 	headers = {'Content-type': 'application/json'}
 	body = {
 		"extractor_id": extractorName,
@@ -91,7 +104,7 @@ def dataset_add_tag(host, datasetId, tag, key):
 			tag
 		]
 	}
-	r = requests.post("%s/api/datasets/%s/tags?key=%s" % (host, datasetId, key), data=json.dumps(body), headers=headers)
+	r = requests.post(url, data=json.dumps(body), headers=headers)
 	if (r.status_code != 200):
 		print("ERR  : Problem adding dataset tag : [" + str(r.status_code) + "] - " + r.text)
 	else:
