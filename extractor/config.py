@@ -38,8 +38,6 @@ requiredInputFiles = {
 	'.dat': 24
 }
 
-restEndPoint = os.getenv('CLOWDER_URI', "http://localhost:9001")
-
 filter_tag = "meteorology_extracted"
 ISO_8601_UTC_OFFSET = "-07:00"
 sensorId = -1 #! Put real value here. Somebody has to ensure this exists.

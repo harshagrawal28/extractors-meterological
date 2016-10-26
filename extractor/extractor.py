@@ -71,7 +71,7 @@ def get_stream_id(host, key, name):
 # Check if the dataset has the tag.
 def dataset_has_tag(host, datasetId, tag, key):
 	headers = {'Content-type': 'application/json'}
-	r = requests.get("%s/api/datasets/%s/tags?key=%s" % (restEndPoint, datasetId, key), headers=headers)
+	r = requests.get("%s/api/datasets/%s/tags?key=%s" % (host, datasetId, key), headers=headers)
 	if (r.status_code != 200):
 		print("ERR  : Problem getting dataset tags : [" + str(r.status_code) + "] - " + r.text)
 	else:
@@ -91,7 +91,7 @@ def dataset_add_tag(host, datasetId, tag, key):
 			tag
 		]
 	}
-	r = requests.post("%s/api/datasets/%s/tags?key=%s" % (restEndPoint, datasetId, key), data=json.dumps(body), headers=headers)
+	r = requests.post("%s/api/datasets/%s/tags?key=%s" % (host, datasetId, key), data=json.dumps(body), headers=headers)
 	if (r.status_code != 200):
 		print("ERR  : Problem adding dataset tag : [" + str(r.status_code) + "] - " + r.text)
 	else:
@@ -101,12 +101,12 @@ def dataset_add_tag(host, datasetId, tag, key):
 # ----------------------------------------------------------------------
 # Process the dataset message and upload the results
 def process_dataset(parameters):
-	global parse_file, extractorName, inputDirectory, outputDirectory, restEndPoint, filter_tag, sensorId, streamName, ISO_8601_UTC_OFFSET
+	global parse_file, extractorName, inputDirectory, outputDirectory, filter_tag, sensorId, streamName, ISO_8601_UTC_OFFSET
 
 	print 'Extractor Running'
 
 	# Look for stream.
-	streamId = get_stream_id(restEndPoint, parameters['secretKey'], streamName)
+	streamId = get_stream_id(parameters['host'], parameters['secretKey'], streamName)
 	if streamId == None:
 		raise LookupError('Unable to find stream with name "%s".' % streamName)
 #! The following is not Working.
@@ -121,7 +121,7 @@ def process_dataset(parameters):
 # 			"properties": {},
 # 			"sensor_id": str(sensorId)
 # 		}
-# 		r = requests.post("%s/api/geostreams/streams?key=%s" % (restEndPoint, parameters['secretKey']), data=json.dumps(body), headers=headers)
+# 		r = requests.post("%s/api/geostreams/streams?key=%s" % (parameters['host'], parameters['secretKey']), data=json.dumps(body), headers=headers)
 # 		if (r.status_code != 200):
 # 			print("ERR  : Problem creating stream : [" + str(r.status_code) + "] - " + r.text)
 
@@ -168,7 +168,7 @@ def process_dataset(parameters):
 			print("ERR  : Problem creating datapoint : [" + str(r.status_code) + "] - " + r.text)
 
 	# Mark dataset as processed.
-	dataset_add_tag(restEndPoint, parameters['datasetId'], filter_tag, parameters['secretKey'])
+	dataset_add_tag(parameters['host'], parameters['datasetId'], filter_tag, parameters['secretKey'])
 
 	print 'cleaning up...'
 	# Clean up the input files.
@@ -226,7 +226,7 @@ def has_been_handled(parameters):
 	if not has_all_files(parameters):
 		return False
 	# Check tags.
-	if dataset_has_tag(restEndPoint, parameters['datasetId'], filter_tag, parameters['secretKey']):
+	if dataset_has_tag(parameters['host'], parameters['datasetId'], filter_tag, parameters['secretKey']):
 		return True
 	return False
 

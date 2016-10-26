@@ -111,8 +111,7 @@ RUN mkdir -p "${INPUTDIR}" && \
 ENV RABBITMQ_URI="" \
     RABBITMQ_EXCHANGE="clowder" \
     RABBITMQ_VHOST="%2F" \
-    RABBITMQ_QUEUE="terra.meterological" \
-    CLOWDER_URI=""
+    RABBITMQ_QUEUE="terra.meterological"
 COPY entrypoint.sh extractor_info.json *.py ./
 ENTRYPOINT ["./entrypoint.sh"]
 CMD ["python", "./extractor.py"]
