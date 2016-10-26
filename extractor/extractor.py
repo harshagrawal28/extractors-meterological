@@ -163,22 +163,15 @@ def process_dataset(parameters):
 	#print json.dumps(files)
 
 	# Process each file and concatenate results together.
-	records = []
 	for file in files:
-		newRecord = parse_file(file['path'], utc_offset=ISO_8601_UTC_OFFSET)
-		newRecord['sensor_id'] = str(sensorId)
-		newRecord['stream_id'] = str(streamId)
-		records += newRecord
+		# Parse one file and get all the records in it.
+		records = parse_file(file['path'], utc_offset=ISO_8601_UTC_OFFSET)
 
-	print json.dumps(records)
+		# Add props to each record.
+		for record in records:
+			record['sensor_id'] = str(sensorId)
+			record['stream_id'] = str(streamId)
 
-	#! Save records as JSON back to GeoStream.
-	# @see {@link https://opensource.ncsa.illinois.edu/bitbucket/projects/GEOD/repos/seagrant-parsers-py/browse/SeaBird/seabird-import.py}
-	for record in records:
-		headers = {'Content-type': 'application/json'}
-		r = requests.post("%s/api/geostreams/datapoints?key=%s" % (restEndPoint, parameters['secretKey']), data=json.dumps(record), headers=headers)
-		if (r.status_code != 200):
-			print("ERR  : Problem creating datapoint : [" + str(r.status_code) + "] - " + r.text)
 
 	# Mark dataset as processed.
 	dataset_add_tag(parameters['host'], parameters['datasetId'], filter_tag, parameters['secretKey'])
