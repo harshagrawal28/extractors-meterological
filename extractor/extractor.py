@@ -78,43 +78,6 @@ def get_stream_id(host, key, name):
 
 	return None
 
-# Check if the dataset has the tag.
-def dataset_has_tag(host, key, datasetId, tag):
-
-	url = urlparse.urljoin(host, 'api/datasets/%s/tags?key=%s' % (datasetId, key))
-
-	print 'Check Dataset Tag: ' + url
-
-	headers = {'Content-type': 'application/json'}
-	r = requests.get(url, headers=headers)
-	if (r.status_code != 200):
-		print 'ERR : Problem getting dataset tags : [%s] - %s' % (str(r.status_code), r.text)
-	else:
-		json_data = r.json()
-		if tag in json_data['tags']:
-			return True
-	return False
-
-# Add a tag to the dataset.
-def dataset_add_tag(host, key, datasetId, tag):
-	global extractorName
-
-	url = urlparse.urljoin(host, 'api/datasets/%s/tags?key=%s' % (datasetId, key))
-
-	headers = {'Content-type': 'application/json'}
-	body = {
-		"extractor_id": extractorName,
-		"tags": [
-			tag
-		]
-	}
-	r = requests.post(url, data=json.dumps(body), headers=headers)
-	if (r.status_code != 200):
-		print 'ERR : Problem adding dataset tag : [%s] - %s' % (str(r.status_code), r.text)
-	else:
-		return True
-	return False
-
 #! Save records as JSON back to GeoStream.
 # @see {@link https://opensource.ncsa.illinois.edu/bitbucket/projects/GEOD/repos/seagrant-parsers-py/browse/SeaBird/seabird-import.py}
 def upload_records(host, key, records):
@@ -132,7 +95,7 @@ def upload_records(host, key, records):
 # ----------------------------------------------------------------------
 # Process the dataset message and upload the results
 def process_dataset(parameters):
-	global parse_file, extractorName, inputDirectory, outputDirectory, filter_tag, sensorId, streamName, ISO_8601_UTC_OFFSET
+	global parse_file, extractorName, inputDirectory, outputDirectory, sensorId, streamName, ISO_8601_UTC_OFFSET
 
 	print 'Extractor Running'
 
@@ -180,7 +143,7 @@ def process_dataset(parameters):
 
 	#print json.dumps(files)
 
-	datasetUrl = urlparse.urljoin(parameters['host'], 'datasets/%s' % parameters['datasetInfo']['id'])
+	datasetUrl = urlparse.urljoin(parameters['host'], 'datasets/%s' % parameters['datasetId'])
 
 	# Process each file and concatenate results together.
 	for file in files:
@@ -197,7 +160,18 @@ def process_dataset(parameters):
 		upload_records(parameters['host'], parameters['secretKey'], records)
 
 	# Mark dataset as processed.
-	dataset_add_tag(parameters['host'], parameters['secretKey'], parameters['datasetId'], filter_tag)
+    metadata = {
+        "@context": {
+            "@vocab": "https://clowder.ncsa.illinois.edu/clowder/assets/docs/api/index.html#!/files/uploadToDataset"
+        },
+        "dataset_id": parameters["datasetId"],
+        "content": {"status": "COMPLETED"},
+        "agent": {
+            "@type": "cat:extractor",
+            "name": extractorName
+        }
+    }
+    extractors.upload_dataset_metadata_jsonld(mdata=metadata, parameters=parameters)
 
 	print 'cleaning up...'
 	# Clean up the input files.
@@ -248,15 +222,18 @@ def has_all_files(parameters):
 # ----------------------------------------------------------------------
 # Returns true if the dataset has been handled.
 def has_been_handled(parameters):
-	global filter_tag
+	global extractorName
 
 	if 'filelist' not in parameters:
 		return False
 	if not has_all_files(parameters):
 		return False
-	# Check tags.
-	if dataset_has_tag(parameters['host'], parameters['secretKey'], parameters['datasetId'], filter_tag):
-		return True
+	# Check metadata.
+	md = extractors.download_dataset_metadata_jsonld(parameters['host'], parameters['secretKey'], parameters['datasetId'], extractorName)
+	for m in md:
+		if 'agent' in m and 'name' in m['agent'] and m['agent']['name'] == extractorName:
+			return True
+
 	return False
 
 if __name__ == "__main__":
