@@ -29,6 +29,8 @@ def main():
 	logging.basicConfig(format='%(levelname)-7s : %(name)s -  %(message)s', level=logging.WARN)
 	logging.getLogger('pyclowder.extractors').setLevel(logging.INFO)
 
+	print 'Hello World!'
+
 	# Connect to rabbitmq
 	extractors.connect_message_bus(
 		extractorName        = extractorName,
@@ -40,6 +42,8 @@ def main():
 	)
 
 def check_message(parameters):
+	print 'Checking message...'
+
 	# Check for expected input files before beginning processing
 	if has_all_files(parameters):
 		if has_been_handled(parameters):
@@ -84,7 +88,7 @@ def dataset_has_tag(host, key, datasetId, tag):
 	headers = {'Content-type': 'application/json'}
 	r = requests.get(url, headers=headers)
 	if (r.status_code != 200):
-		print("ERR  : Problem getting dataset tags : [" + str(r.status_code) + "] - " + r.text)
+		print 'ERR : Problem getting dataset tags : [%s] - %s' % (str(r.status_code), r.text)
 	else:
 		json_data = r.json()
 		if tag in json_data['tags']:
@@ -106,7 +110,7 @@ def dataset_add_tag(host, key, datasetId, tag):
 	}
 	r = requests.post(url, data=json.dumps(body), headers=headers)
 	if (r.status_code != 200):
-		print("ERR  : Problem adding dataset tag : [" + str(r.status_code) + "] - " + r.text)
+		print 'ERR : Problem adding dataset tag : [%s] - %s' % (str(r.status_code), r.text)
 	else:
 		return True
 	return False
@@ -122,7 +126,7 @@ def upload_records(host, key, records):
 		headers = {'Content-type': 'application/json'}
 		r = requests.post(url, data=json.dumps(record), headers=headers)
 		if (r.status_code != 200):
-			print("ERR  : Problem creating datapoint : [" + str(r.status_code) + "] - " + r.text)
+			print 'ERR : Problem creating datapoint : [%s] - %s' % (str(r.status_code), r.text)
 	return
 
 # ----------------------------------------------------------------------
