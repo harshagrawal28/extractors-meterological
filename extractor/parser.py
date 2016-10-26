@@ -127,7 +127,7 @@ def parse_file(filepath, utc_offset = 'Z'):
 		reader = csv.DictReader(csvfile, fieldnames=prop_names)
 		for row in reader:
 			timestamp = datetime.datetime.strptime(row['TIMESTAMP'], '%Y-%m-%d %H:%M:%S').isoformat() + str(utc_offset)
-			results.append({
+			newResult = {
 				'start_time': timestamp,
 				'end_time': timestamp,
 				'properties': transformProps(props, row),
@@ -142,7 +142,13 @@ def parse_file(filepath, utc_offset = 'Z'):
 						0
 					]
 				}
-			})
+			}
+			newResult['properties']['_raw'] = {
+				'data': row,
+				'units': prop_units,
+				'sample_method': prop_sample_method
+			}
+			results.append(newResult)
 	return results
 
 if __name__ == "__main__":
