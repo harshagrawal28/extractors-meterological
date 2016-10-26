@@ -75,7 +75,7 @@ def get_stream_id(host, key, name):
 	return None
 
 # Check if the dataset has the tag.
-def dataset_has_tag(host, datasetId, tag, key):
+def dataset_has_tag(host, key, datasetId, tag):
 
 	url = urlparse.urljoin(host, 'api/datasets/%s/tags?key=%s' % (datasetId, key))
 
@@ -92,7 +92,7 @@ def dataset_has_tag(host, datasetId, tag, key):
 	return False
 
 # Add a tag to the dataset.
-def dataset_add_tag(host, datasetId, tag, key):
+def dataset_add_tag(host, key, datasetId, tag):
 	global extractorName
 
 	url = urlparse.urljoin(host, 'api/datasets/%s/tags?key=%s' % (datasetId, key))
@@ -193,7 +193,7 @@ def process_dataset(parameters):
 		upload_records(parameters['host'], parameters['secretKey'], records)
 
 	# Mark dataset as processed.
-	dataset_add_tag(parameters['host'], parameters['datasetId'], filter_tag, parameters['secretKey'])
+	dataset_add_tag(parameters['host'], parameters['secretKey'], parameters['datasetId'], filter_tag)
 
 	print 'cleaning up...'
 	# Clean up the input files.
@@ -251,7 +251,7 @@ def has_been_handled(parameters):
 	if not has_all_files(parameters):
 		return False
 	# Check tags.
-	if dataset_has_tag(parameters['host'], parameters['datasetId'], filter_tag, parameters['secretKey']):
+	if dataset_has_tag(parameters['host'], parameters['secretKey'], parameters['datasetId'], filter_tag):
 		return True
 	return False
 
