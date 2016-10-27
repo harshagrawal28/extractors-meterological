@@ -3,15 +3,24 @@
 
 ## Local development
 1. To bring up the local Docker containers for the rabbitMQ, mongoDB and Clowder servers:
-> `$> . clowder/start`
+
+        $> . clowder/start
+
 2. To stop those containers:
-> `$> . clowder/stop`
+
+        $> . clowder/stop
+
 3. To get registration link for Clowder:
-> `$> . clowder/show-signups`
+
+        $> . clowder/show-signups
+
 4. To build the extractor Docker image:
-> `$> . extractor/build`
+
+        $> . extractor/build
+
 5. To run the extractor Docker container: (This uses the rabbitMQ server started in step 1. If you don't need that server, this shortcut prints out the command it runs so you can modify that yourself.)
-> `$> . extractor/run`
+
+        $> . extractor/run
 
 ### Connecting to a remote server
 Modify the rabbitMQ related environment variables at the end of `extractor/Dockerfile`.
