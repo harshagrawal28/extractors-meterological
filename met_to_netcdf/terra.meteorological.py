@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-terra.meterological.py
+terra.meteorological.py
 
 This extractor will trigger when a file is added to a dataset in Clowder.
 It checks if all the required input files are present in the dataset and no metadata
