@@ -59,18 +59,14 @@ def check_message(parameters):
 			return False
 		else:
 			# Handle the message but do not download any files automatically.
-			return "bypass"
+			return True
 	else:
 		print 'skipping, not all input files are ready'
 		return False
 
 # Get stream ID from Clowder based on stream name
 def get_stream_id(host, key, name):
-
-	url = urlparse.urljoin(host, 'api/geostreams/streams?%s' % urllib.urlencode({
-		"stream_name": name,
-		"key": key
-	}))
+	url = "%sapi/geostreams/streams?stream_name:'%s'&key=%s" % (host, name, key)
 
 	print("...searching for stream ID: "+url)
 	r = requests.get(url)
@@ -89,9 +85,7 @@ def get_stream_id(host, key, name):
 #! Save records as JSON back to GeoStream.
 # @see {@link https://opensource.ncsa.illinois.edu/bitbucket/projects/GEOD/repos/seagrant-parsers-py/browse/SeaBird/seabird-import.py}
 def upload_records(host, key, records):
-	print json.dumps(records)
-
-	url = urlparse.urljoin(host, 'api/geostreams/datapoints?key=%s' % key)
+	url = "%sapi/geostreams/datapoints?key=%s" % (host, key)
 
 	for record in records:
 		headers = {'Content-type': 'application/json'}
@@ -105,10 +99,12 @@ def upload_records(host, key, records):
 def process_dataset(parameters):
 	global parse_file, extractorName, inputDirectory, outputDirectory, sensorId, streamName, ISO_8601_UTC_OFFSET
 
-	print 'Extractor Running'
+	host = parameters['host']
+	if not host.endswith('/'):
+		host += "/"
 
 	# Look for stream.
-	streamId = get_stream_id(parameters['host'], parameters['secretKey'], streamName)
+	streamId = get_stream_id(host, parameters['secretKey'], streamName)
 	if streamId == None:
 		raise LookupError('Unable to find stream with name "%s".' % streamName)
 #! The following is not Working.
@@ -131,32 +127,17 @@ def process_dataset(parameters):
 	fileExt = '.dat'
 	files = get_all_files(parameters)[fileExt]
 
-	# Download files to input directory
-	for file in files:
-		file['path'] = extractors.download_file(
-			channel            = parameters['channel'],
-			header             = parameters['header'],
-			host               = parameters['host'],
-			key                = parameters['secretKey'],
-			fileid             = file['id'],
-			# What's this argument for?
-			intermediatefileid = file['id'],
-			ext                = fileExt
-		)
-		# Restore temp filenames to original - script requires specific name formatting so tmp names aren't suitable
-		file['old_path'] = file['path']
-		file['path'] = os.path.join(inputDirectory, file['filename'])
-		os.rename(file['old_path'], file['path'])
-		print 'found %s file: %s' % (fileExt, file['path'])
-
-	#print json.dumps(files)
-
-	datasetUrl = urlparse.urljoin(parameters['host'], 'datasets/%s' % parameters['datasetId'])
+	datasetUrl = '%sdatasets/%s' % (host, parameters['datasetId'])
 
 	# Process each file and concatenate results together.
 	for file in files:
+		# Find path in parameters
+		for f in parameters['files']:
+			if f.endswith(file['filename']):
+				filepath = f
+
 		# Parse one file and get all the records in it.
-		records = parse_file(file['path'], utc_offset=ISO_8601_UTC_OFFSET)
+		records = parse_file(filepath, utc_offset=ISO_8601_UTC_OFFSET)
 
 		# Add props to each record.
 		for record in records:
@@ -165,7 +146,7 @@ def process_dataset(parameters):
 			record['sensor_id'] = str(sensorId)
 			record['stream_id'] = str(streamId)
 
-		upload_records(parameters['host'], parameters['secretKey'], records)
+		upload_records(host, parameters['secretKey'], records)
 
 	# Mark dataset as processed.
 	metadata = {
@@ -180,12 +161,6 @@ def process_dataset(parameters):
 		}
 	}
 	extractors.upload_dataset_metadata_jsonld(mdata=metadata, parameters=parameters)
-
-	print 'cleaning up...'
-	# Clean up the input files.
-	for file in files:
-		os.remove(file['path'])
-	print 'done cleaning'
 
 # ----------------------------------------------------------------------
 # Find as many expected files as possible and return the set.
