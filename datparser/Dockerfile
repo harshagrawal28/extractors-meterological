@@ -1,4 +1,4 @@
-# Dockerfile for the TerraRef hyperspectral image conversion extractor
+# Dockerfile for the TerraRef meteorological dat parser extractor
 # August 17, 2016
 FROM ubuntu:14.04
 MAINTAINER Yan Y. Liu <yanliu@illinois.edu>
@@ -111,7 +111,7 @@ RUN mkdir -p "${INPUTDIR}" && \
 ENV RABBITMQ_URI="" \
     RABBITMQ_EXCHANGE="clowder" \
     RABBITMQ_VHOST="%2F" \
-    RABBITMQ_QUEUE="terra.meterological"
+    RABBITMQ_QUEUE="terra.datparser"
 COPY entrypoint.sh extractor_info.json *.py ./
 ENTRYPOINT ["./entrypoint.sh"]
 CMD ["python", "./extractor.py"]

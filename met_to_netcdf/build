@@ -1,4 +1,0 @@
-#!/bin/bash
-
-name=$(basename "$(pwd)")
-docker build -t "terra_${name}" .

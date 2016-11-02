@@ -1,9 +1,9 @@
 {
   "@context": "http://clowder.ncsa.illinois.edu/contexts/extractors.jsonld",
-  "name": "terra.hyperspectral",
+  "name": "terra.datparser",
   "version": "1.0",
-  "description": "Hyperspectral to netCDF",
-  "author": "Rob Kooper <kooper@illinois.edu>",
+  "description": "Meteorological DAT file parser",
+  "author": "Xingchen Hong <hong114@illinois.edu>",
   "contributors": [],
   "contexts": [],
   "repository": {"repType": "git", "repUrl": "https://opensource.ncsa.illinois.edu/stash/scm/cats/pyclowder.git"},

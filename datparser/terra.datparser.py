@@ -168,18 +168,18 @@ def process_dataset(parameters):
 		upload_records(parameters['host'], parameters['secretKey'], records)
 
 	# Mark dataset as processed.
-    metadata = {
-        "@context": {
-            "@vocab": "https://clowder.ncsa.illinois.edu/clowder/assets/docs/api/index.html#!/files/uploadToDataset"
-        },
-        "dataset_id": parameters["datasetId"],
-        "content": {"status": "COMPLETED"},
-        "agent": {
-            "@type": "cat:extractor",
-            "name": extractorName
-        }
-    }
-    extractors.upload_dataset_metadata_jsonld(mdata=metadata, parameters=parameters)
+	metadata = {
+		"@context": {
+			"@vocab": "https://clowder.ncsa.illinois.edu/clowder/assets/docs/api/index.html#!/files/uploadToDataset"
+		},
+		"dataset_id": parameters["datasetId"],
+		"content": {"status": "COMPLETED"},
+		"agent": {
+			"@type": "cat:extractor",
+			"name": extractorName
+		}
+	}
+	extractors.upload_dataset_metadata_jsonld(mdata=metadata, parameters=parameters)
 
 	print 'cleaning up...'
 	# Clean up the input files.
