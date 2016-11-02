@@ -133,7 +133,7 @@ def process_dataset(parameters):
 	for file in files:
 		# Find path in parameters
 		for f in parameters['files']:
-			if f.endswith(file['filename']):
+			if os.path.basename(f) == file['filename']:
 				filepath = f
 
 		# Parse one file and get all the records in it.
