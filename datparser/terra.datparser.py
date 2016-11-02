@@ -162,6 +162,7 @@ def process_dataset(parameters):
 	}
 	extractors.upload_dataset_metadata_jsonld(mdata=metadata, parameters=parameters)
 
+	print("processing completed")
 # ----------------------------------------------------------------------
 # Find as many expected files as possible and return the set.
 def get_all_files(parameters):
