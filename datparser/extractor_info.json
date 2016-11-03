@@ -1,0 +1,13 @@
+{
+  "@context": "http://clowder.ncsa.illinois.edu/contexts/extractors.jsonld",
+  "name": "terra.met.datparser",
+  "version": "1.0",
+  "description": "Meteorological DAT file parser",
+  "author": "Xingchen Hong <hong114@illinois.edu>",
+  "contributors": [],
+  "contexts": [],
+  "repository": {"repType": "git", "repUrl": "https://opensource.ncsa.illinois.edu/stash/scm/cats/pyclowder.git"},
+  "external_services": [],
+  "dependencies": [],
+  "bibtex": []
+}
