@@ -66,7 +66,10 @@ def check_message(parameters):
 
 # Get stream ID from Clowder based on stream name
 def get_stream_id(host, key, name):
-	url = "%sapi/geostreams/streams?stream_name:'%s'&key=%s" % (host, name, key)
+	url = urlparse.urljoin(host, 'api/geostreams/streams?%s' % urllib.urlencode({
+		"stream_name": name,
+		"key": key
+	}))
 
 	print("...searching for stream ID: "+url)
 	r = requests.get(url)
@@ -85,7 +88,7 @@ def get_stream_id(host, key, name):
 #! Save records as JSON back to GeoStream.
 # @see {@link https://opensource.ncsa.illinois.edu/bitbucket/projects/GEOD/repos/seagrant-parsers-py/browse/SeaBird/seabird-import.py}
 def upload_records(host, key, records):
-	url = "%sapi/geostreams/datapoints?key=%s" % (host, key)
+	url = urlparse.urljoin(host, 'api/geostreams/datapoints?key=%s' % key)
 
 	for record in records:
 		headers = {'Content-type': 'application/json'}
@@ -127,7 +130,7 @@ def process_dataset(parameters):
 	fileExt = '.dat'
 	files = get_all_files(parameters)[fileExt]
 
-	datasetUrl = '%sdatasets/%s' % (host, parameters['datasetId'])
+	datasetUrl = urlparse.urljoin(host, 'datasets/%s' % parameters['datasetId'])
 
 	# Process each file and concatenate results together.
 	for file in files:

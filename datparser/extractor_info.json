@@ -1,6 +1,6 @@
 {
   "@context": "http://clowder.ncsa.illinois.edu/contexts/extractors.jsonld",
-  "name": "terra.datparser",
+  "name": "terra.met.datparser",
   "version": "1.0",
   "description": "Meteorological DAT file parser",
   "author": "Xingchen Hong <hong114@illinois.edu>",
