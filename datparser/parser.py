@@ -150,7 +150,3 @@ def parse_file(filepath, utc_offset = 'Z'):
 			}
 			results.append(newResult)
 	return results
-
-if __name__ == "__main__":
-	sample_file = '../testdata/WeatherStation_SecData_2016_08_29_2304.dat'
-	print json.dumps(parse_file(sample_file))
