@@ -2,8 +2,16 @@
 
 import math
 import datetime
+import dateutil.parser
+import dateutil.tz
 import csv
 import json
+
+# Convert the given ISO time string to timestamps in seconds.
+def ISOTimeString2TimeStamp(timeStr):
+	time = dateutil.parser.parse(timeString)
+	isoStartTime = datetime.datetime(1970, 1, 1, 0, 0, 0, 0, dateutil.tz.tzoffset(None, 0))
+	return int((time - isoStartTime).total_seconds())
 
 def tempUnit2K(value, unit):
 	if unit == 'Deg C':
@@ -31,6 +39,17 @@ def extractXFactor(magnitude, degreeFromNorth):
 	return magnitude * math.sin(math.radians(degreeFromNorth));
 def extractYFactor(magnitude, degreeFromNorth):
 	return magnitude * math.cos(math.radians(degreeFromNorth));
+
+STATION_GEOMETRY = {
+	'type': 'Point',
+	'coordinates': [
+		# SW Corner.
+		# @see {@link https://github.com/terraref/extractors-metadata/blob/master/sensorposition/terra.sensorposition.py#L68}
+		33.0745666667,
+		-111.9750833333,
+		0
+	]
+}
 
 # 'AirTC': 'air_temperature',
 # 'RH': 'relative_humidity',
@@ -128,20 +147,14 @@ def parse_file(filepath, utc_offset = 'Z'):
 		for row in reader:
 			timestamp = datetime.datetime.strptime(row['TIMESTAMP'], '%Y-%m-%d %H:%M:%S').isoformat() + str(utc_offset)
 			newResult = {
+				# @type {string}
 				'start_time': timestamp,
+				# @type {string}
 				'end_time': timestamp,
 				'properties': transformProps(props, row),
+				# @type {string}
 				'type': 'Feature',
-				'geometry': {
-					'type': 'Point',
-					'coordinates': [
-						# SW Corner.
-						# @see {@link https://github.com/terraref/extractors-metadata/blob/master/sensorposition/terra.sensorposition.py#L68}
-						33.0745666667,
-						-111.9750833333,
-						0
-					]
-				}
+				'geometry': STATION_GEOMETRY
 			}
 			newResult['properties']['_raw'] = {
 				'data': row,
@@ -150,3 +163,55 @@ def parse_file(filepath, utc_offset = 'Z'):
 			}
 			results.append(newResult)
 	return results
+
+# ----------------------------------------------------------------------
+# Aggregate the list of parsed results.
+# The aggregation starts with the input data and no state given.
+# This function returns a list of aggregated data packages and a state package
+# which should be fed back into the function to continue or end the aggregation.
+# If there's no more data to input, provide None and the aggregation will stop.
+# When aggregation ended, the state package returned should be None to indicate that.
+def aggregate(data, state):
+	# This function should always return this complex package no matter what happens.
+	result = {
+		'packages': [],
+		'state': None
+	}
+
+	# The aggregation ends when no more data is available. (data is None)
+	# In which case it needs to recover leftover data in the state package.
+	if data == None:
+		# The aggregation is ending, try recover leftover data from the state.
+		if state == None:
+			# There is nothing to do.
+		else:
+			# Recover data from state.
+
+			if len(state['leftover']) == 0:
+				# There is nothing to recover.
+			else:
+				# Aggregate data in state['leftover'].
+
+				startTime = state['starttime']
+				# Use the latest date in the data entries.
+				endTime = max(map(lambda x: ISOTimeString2TimeStamp(x['end_time']), state['leftover']))
+				# Prepare the list of properties for aggregation.
+				propertiesList = map(lambda x: x['properties'], state['leftover'])
+
+				newPackage = {
+					'start_time': startTime,
+					'end_time': endTime,
+					'properties': aggregateProps(propertiesList), #! Implement aggregateProps
+					'type': 'Feature',
+					'geometry': STATION_GEOMETRY
+				}
+				result['packages'].append(newPackage)
+	else:
+		# More data is provided, continue aggregation.
+		if state == None:
+			# There is no previous state, starting afresh.
+
+		else:
+			# Resume aggregation from a previous state.
+
+	return result

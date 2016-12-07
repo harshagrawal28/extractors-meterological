@@ -132,6 +132,8 @@ def process_dataset(parameters):
 
 	datasetUrl = urlparse.urljoin(host, 'datasets/%s' % parameters['datasetId'])
 
+	#! Files should be sorted for the aggregation to work.
+
 	# Process each file and concatenate results together.
 	for file in files:
 		# Find path in parameters
