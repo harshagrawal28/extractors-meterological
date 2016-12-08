@@ -134,6 +134,7 @@ def process_dataset(parameters):
 
 	#! Files should be sorted for the aggregation to work.
 	aggregationState = None
+	lastAggregatedFile = None
 
 	# Process each file and concatenate results together.
 	for file in files:
@@ -162,6 +163,25 @@ def process_dataset(parameters):
 			record['stream_id'] = str(streamId)
 
 		upload_records(host, parameters['secretKey'], aggregationRecords)
+
+		lastAggregatedFile = file
+
+	# End aggregation and upload any data left.
+	lastAggregationResult = aggregate(
+		cutoffSize=aggregationCutOff,
+		tz=ISO_8601_UTC_OFFSET,
+		inputData=None,
+		state=aggregationState
+	)
+	lastAggregationRecords = lastAggregationResult['packages']
+	# Add props to each record.
+	for record in lastAggregationRecords:
+		record['source'] = datasetUrl
+		record['file'] = lastAggregatedFile['id']
+		record['sensor_id'] = str(sensorId)
+		record['stream_id'] = str(streamId)
+
+	upload_records(host, parameters['secretKey'], lastAggregationRecords)
 
 	# Mark dataset as processed.
 	metadata = {
