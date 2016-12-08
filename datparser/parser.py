@@ -19,10 +19,12 @@ debug_log = log if DEBUG else void
 def avg(items):
 	return float(sum(items)) / max(len(items), 1)
 
+ISO_8601_UTC_MEAN = dateutil.tz.tzoffset(None, 0)
+
 # Convert the given ISO time string to timestamps in seconds.
 def ISOTimeString2TimeStamp(timeStr):
 	time = dateutil.parser.parse(timeStr)
-	isoStartTime = datetime.datetime(1970, 1, 1, 0, 0, 0, 0, dateutil.tz.tzoffset(None, 0))
+	isoStartTime = datetime.datetime(1970, 1, 1, 0, 0, 0, 0, ISO_8601_UTC_MEAN)
 	return int((time - isoStartTime).total_seconds())
 
 def tempUnit2K(value, unit):
@@ -133,7 +135,7 @@ def parse_file_header_line(linestr):
 
 # ----------------------------------------------------------------------
 # Parse the CSV file and return a list of dictionaries.
-def parse_file(filepath, utc_offset = 'Z'):
+def parse_file(filepath, utc_offset = ISO_8601_UTC_MEAN):
 	results = []
 	with open(filepath) as csvfile:
 		# First line is always the header.
@@ -169,7 +171,7 @@ def parse_file(filepath, utc_offset = 'Z'):
 
 		reader = csv.DictReader(csvfile, fieldnames=prop_names)
 		for row in reader:
-			timestamp = datetime.datetime.strptime(row['TIMESTAMP'], '%Y-%m-%d %H:%M:%S').isoformat() + str(utc_offset)
+			timestamp = datetime.datetime.strptime(row['TIMESTAMP'], '%Y-%m-%d %H:%M:%S').isoformat() + utc_offset.tzname(None)
 			newResult = {
 				# @type {string}
 				'start_time': timestamp,
@@ -180,11 +182,12 @@ def parse_file(filepath, utc_offset = 'Z'):
 				'type': 'Feature',
 				'geometry': STATION_GEOMETRY
 			}
-			newResult['properties']['_raw'] = {
-				'data': row,
-				'units': prop_units,
-				'sample_method': prop_sample_method
-			}
+			# Enable this if the raw data needs to be kept.
+# 			newResult['properties']['_raw'] = {
+# 				'data': row,
+# 				'units': prop_units,
+# 				'sample_method': prop_sample_method
+# 			}
 			results.append(newResult)
 	return results
 
@@ -197,7 +200,7 @@ def parse_file(filepath, utc_offset = 'Z'):
 # When aggregation ended, the state package returned should be None to indicate that.
 # Note: data has to be sorted by time.
 # Note: cutoffSize is in seconds.
-def aggregate(cutoffSize, inputData, state):
+def aggregate(cutoffSize, tz, inputData, state):
 	# This function should always return this complex package no matter what happens.
 	result = {
 		'packages': [],
@@ -231,7 +234,7 @@ def aggregate(cutoffSize, inputData, state):
 				# Assuming the data is always sorted, the last one should be the latest.
 				endTime = ISOTimeString2TimeStamp(data[-1]['end_time'])
 
-				newPackage = aggregate_chunk(data, startTime, endTime)
+				newPackage = aggregate_chunk(data, tz, startTime, endTime)
 				if newPackage != None:
 					result['packages'].append(newPackage)
 
@@ -282,7 +285,7 @@ def aggregate(cutoffSize, inputData, state):
 			else:
 				# Cutoff reached.
 				# Aggregate this chunk.
-				newPackage = aggregate_chunk(data[startIndex:endIndex], startTime, endTimeCutoff)
+				newPackage = aggregate_chunk(data[startIndex:endIndex], tz, startTime, endTimeCutoff)
 				if newPackage != None:
 					result['packages'].append(newPackage)
 
@@ -296,7 +299,9 @@ def aggregate(cutoffSize, inputData, state):
 	return result
 
 # Helper function for aggregating a chunk of data.
-def aggregate_chunk(dataChunk, startTime, endTime):
+# @param {timestamp} startTime
+# @param {timestamp} endTime
+def aggregate_chunk(dataChunk, tz, startTime, endTime):
 	if len(dataChunk) == 0:
 		# There is nothing to aggregate.
 		return None
@@ -305,8 +310,8 @@ def aggregate_chunk(dataChunk, startTime, endTime):
 		propertiesList = map(lambda x: x['properties'], dataChunk)
 
 		return {
-			'start_time': startTime,
-			'end_time': endTime,
+			'start_time': datetime.datetime.fromtimestamp(startTime, tz).isoformat(),
+			'end_time': datetime.datetime.fromtimestamp(endTime, tz).isoformat(),
 			'properties': aggregateProps(propertiesList),
 			'type': 'Feature',
 			'geometry': STATION_GEOMETRY
@@ -339,31 +344,58 @@ def aggregateProps(propertiesList):
 
 if __name__ == "__main__":
 	size = 5 * 60
+	tz = dateutil.tz.tzoffset("-07:00", -7 * 60 * 60)
 	packages = []
 
 	file = './test-input-1.dat'
-	parse = parse_file(file)
-	result = aggregate(size, parse, None)
+	parse = parse_file(file, tz)
+	result = aggregate(
+		cutoffSize=size,
+		tz=tz,
+		inputData=parse,
+		state=None
+	)
 	packages += result['packages']
 	print json.dumps(result['state'])
 
 	file = './test-input-2.dat'
-	parse = parse_file(file)
-	result = aggregate(size, parse, result['state'])
+	parse = parse_file(file, tz)
+	result = aggregate(
+		cutoffSize=size,
+		tz=tz,
+		inputData=parse,
+		state=result['state']
+	)
 	packages += result['packages']
 	print json.dumps(result['state'])
 
-	result = aggregate(size, None, result['state'])
+	result = aggregate(
+		cutoffSize=size,
+		tz=tz,
+		inputData=None,
+		state=result['state']
+	)
 	packages += result['packages']
 	print 'Package Count: %s' % (len(packages))
 
 	packages = []
 
 	file = './test-input-3.dat'
-	parse = parse_file(file)
-	result = aggregate(size, parse, result['state'])
+	parse = parse_file(file, tz)
+	result = aggregate(
+		cutoffSize=size,
+		tz=tz,
+		inputData=parse,
+		state=result['state']
+	)
 	packages += result['packages']
 
-	result = aggregate(size, None, result['state'])
+	result = aggregate(
+		cutoffSize=size,
+		tz=tz,
+		inputData=None,
+		state=result['state']
+	)
 	packages += result['packages']
 	print 'Package Count: %s' % (len(packages))
+	print json.dumps(packages)

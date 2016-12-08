@@ -11,6 +11,7 @@
 # =============================================================================
 
 import os
+import dateutil.tz
 
 # name to show in rabbitmq queue list
 extractorName = os.getenv('RABBITMQ_QUEUE', "terra.met.datparser")
@@ -44,6 +45,7 @@ requiredInputFiles = {
 	'.dat': 24
 }
 
-ISO_8601_UTC_OFFSET = "-07:00"
+ISO_8601_UTC_OFFSET = dateutil.tz.tzoffset("-07:00", -7 * 60 * 60)
 sensorId = -1 #! Put real value here. Somebody has to ensure this exists.
 streamName = "weather station"
+aggregationCutOff = 5 * 60 # 5 minutes.

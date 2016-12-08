@@ -100,7 +100,7 @@ def upload_records(host, key, records):
 # ----------------------------------------------------------------------
 # Process the dataset message and upload the results
 def process_dataset(parameters):
-	global parse_file, extractorName, inputDirectory, outputDirectory, sensorId, streamName, ISO_8601_UTC_OFFSET
+	global parse_file, aggregate, aggregationCutOff, extractorName, inputDirectory, outputDirectory, sensorId, streamName, ISO_8601_UTC_OFFSET
 
 	host = parameters['host']
 	if not host.endswith('/'):
@@ -133,6 +133,7 @@ def process_dataset(parameters):
 	datasetUrl = urlparse.urljoin(host, 'datasets/%s' % parameters['datasetId'])
 
 	#! Files should be sorted for the aggregation to work.
+	aggregationState = None
 
 	# Process each file and concatenate results together.
 	for file in files:
@@ -144,14 +145,23 @@ def process_dataset(parameters):
 		# Parse one file and get all the records in it.
 		records = parse_file(filepath, utc_offset=ISO_8601_UTC_OFFSET)
 
+		aggregationResult = aggregate(
+			cutoffSize=aggregationCutOff,
+			tz=ISO_8601_UTC_OFFSET,
+			inputData=records,
+			state=aggregationState
+		)
+		aggregationState = aggregationResult['state']
+		aggregationRecords = aggregationResult['packages']
+
 		# Add props to each record.
-		for record in records:
+		for record in aggregationRecords:
 			record['source'] = datasetUrl
 			record['file'] = file['id']
 			record['sensor_id'] = str(sensorId)
 			record['stream_id'] = str(streamId)
 
-		upload_records(host, parameters['secretKey'], records)
+		upload_records(host, parameters['secretKey'], aggregationRecords)
 
 	# Mark dataset as processed.
 	metadata = {
