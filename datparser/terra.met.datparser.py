@@ -137,14 +137,25 @@ def process_dataset(parameters):
 	lastAggregatedFile = None
 
 	# Process each file and concatenate results together.
-	for file in files:
-		# Find path in parameters
-		for f in parameters['files']:
-			if os.path.basename(f) == file['filename']:
-				filepath = f
+	# To work with the aggregation process, add an extra NULL file to indicate we are done with all the files.
+	for file in (list(files) + [ None ]):
+		if file == None:
+			# We are done with all the files, finish up aggregation.
+			# Pass None as data into the aggregation to let it wrap up any work left.
+			records = None
+			# The file ID would be the last file processed.
+			fileId = lastAggregatedFile['id']
+		else:
+			# Add this file to the aggregation.
 
-		# Parse one file and get all the records in it.
-		records = parse_file(filepath, utc_offset=ISO_8601_UTC_OFFSET)
+			# Find path in parameters
+			for f in parameters['files']:
+				if os.path.basename(f) == file['filename']:
+					filepath = f
+
+			# Parse one file and get all the records in it.
+			records = parse_file(filepath, utc_offset=ISO_8601_UTC_OFFSET)
+			fileId = file['id']
 
 		aggregationResult = aggregate(
 			cutoffSize=aggregationCutOff,
@@ -158,30 +169,13 @@ def process_dataset(parameters):
 		# Add props to each record.
 		for record in aggregationRecords:
 			record['source'] = datasetUrl
-			record['file'] = file['id']
+			record['file'] = fileId
 			record['sensor_id'] = str(sensorId)
 			record['stream_id'] = str(streamId)
 
 		upload_records(host, parameters['secretKey'], aggregationRecords)
 
 		lastAggregatedFile = file
-
-	# End aggregation and upload any data left.
-	lastAggregationResult = aggregate(
-		cutoffSize=aggregationCutOff,
-		tz=ISO_8601_UTC_OFFSET,
-		inputData=None,
-		state=aggregationState
-	)
-	lastAggregationRecords = lastAggregationResult['packages']
-	# Add props to each record.
-	for record in lastAggregationRecords:
-		record['source'] = datasetUrl
-		record['file'] = lastAggregatedFile['id']
-		record['sensor_id'] = str(sensorId)
-		record['stream_id'] = str(streamId)
-
-	upload_records(host, parameters['secretKey'], lastAggregationRecords)
 
 	# Mark dataset as processed.
 	metadata = {
