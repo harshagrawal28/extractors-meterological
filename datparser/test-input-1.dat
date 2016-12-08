@@ -1,0 +1,7 @@
+"TOA5","WeatherStation","CR1000","39656","CR1000.Std.29","CPU:F13WeatherStation.CR1","39725","SecData"
+"TIMESTAMP","RECORD","BattV","PTemp_C","AirTC","RH","Pyro","PAR_ref","WindDir","WS_ms","Rain_mm_Tot"
+"TS","RN","Volts","Deg C","Deg C","%","W/m^2","umol/s/m^2","degrees","meters/second","mm"
+"","","Smp","Smp","Smp","Smp","Smp","Smp","Smp","Smp","Tot"
+"2016-08-30 00:06:24",7276223,12.61,27.37,26.74,27.48,0,0,65,2.45,0
+"2016-08-30 00:06:25",7276224,12.61,27.37,26.71,27.42,0,0,65,2.83,0
+"2016-08-30 00:06:26",7276225,12.6,27.37,26.71,27.42,0,0,74,2.36,0

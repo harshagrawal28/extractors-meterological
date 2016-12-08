@@ -7,9 +7,21 @@ import dateutil.tz
 import csv
 import json
 
+DEBUG = True
+
+def void():
+	pass
+def log(x):
+	print x
+debug_log = log if DEBUG else void
+
+
+def avg(items):
+	return float(sum(items)) / max(len(items), 1)
+
 # Convert the given ISO time string to timestamps in seconds.
 def ISOTimeString2TimeStamp(timeStr):
-	time = dateutil.parser.parse(timeString)
+	time = dateutil.parser.parse(timeStr)
 	isoStartTime = datetime.datetime(1970, 1, 1, 0, 0, 0, 0, dateutil.tz.tzoffset(None, 0))
 	return int((time - isoStartTime).total_seconds())
 
@@ -93,6 +105,18 @@ PROP_MAPPING = {
 	)]
 }
 
+# Aggregation functions for each property.
+PROP_AGGREGATE = {
+	'air_temperature': avg,
+	'relative_humidity': avg,
+	'surface_downwelling_shortwave_flux_in_air': avg,
+	'surface_downwelling_photosynthetic_photon_flux_in_air': avg,
+	'eastward_wind': avg,
+	'northward_wind': avg,
+	'wind_speed': avg,
+	'precipitation_rate': sum
+}
+
 def transformProps(propMetaDict, propValDict):
 	newProps = []
 	for propName in propValDict:
@@ -171,47 +195,175 @@ def parse_file(filepath, utc_offset = 'Z'):
 # which should be fed back into the function to continue or end the aggregation.
 # If there's no more data to input, provide None and the aggregation will stop.
 # When aggregation ended, the state package returned should be None to indicate that.
-def aggregate(data, state):
+# Note: data has to be sorted by time.
+# Note: cutoffSize is in seconds.
+def aggregate(cutoffSize, inputData, state):
 	# This function should always return this complex package no matter what happens.
 	result = {
 		'packages': [],
-		'state': None
+		# In case the input data does nothing, inherit the state first.
+		'state': None if state == None else dict(state)
 	}
 
-	# The aggregation ends when no more data is available. (data is None)
+	# The aggregation ends when no more data is available. (inputData is None)
 	# In which case it needs to recover leftover data in the state package.
-	if data == None:
+	if inputData == None:
+		debug_log('Ending aggregation...')
+
 		# The aggregation is ending, try recover leftover data from the state.
 		if state == None:
 			# There is nothing to do.
+			pass
 		else:
-			# Recover data from state.
+			# Recover leftover data from state.
 
-			if len(state['leftover']) == 0:
+			data = state['leftover']
+
+			if len(data) == 0:
 				# There is nothing to recover.
+				pass
 			else:
-				# Aggregate data in state['leftover'].
+				# Aggregate leftover data.
+				# Assume leftover data never contain more data than the cutoff allows.
 
 				startTime = state['starttime']
 				# Use the latest date in the data entries.
-				endTime = max(map(lambda x: ISOTimeString2TimeStamp(x['end_time']), state['leftover']))
-				# Prepare the list of properties for aggregation.
-				propertiesList = map(lambda x: x['properties'], state['leftover'])
+				# Assuming the data is always sorted, the last one should be the latest.
+				endTime = ISOTimeString2TimeStamp(data[-1]['end_time'])
 
-				newPackage = {
-					'start_time': startTime,
-					'end_time': endTime,
-					'properties': aggregateProps(propertiesList), #! Implement aggregateProps
-					'type': 'Feature',
-					'geometry': STATION_GEOMETRY
-				}
-				result['packages'].append(newPackage)
+				newPackage = aggregate_chunk(data, startTime, endTime)
+				if newPackage != None:
+					result['packages'].append(newPackage)
+
+			# Mark state with None to indicate the aggregation is done.
+			result['state'] = None
 	else:
+		debug_log('Aggregating...')
+
+		data = inputData
+
 		# More data is provided, continue aggregation.
 		if state == None:
+			debug_log('Fresh start...')
 			# There is no previous state, starting afresh.
 
+			# Use the earliest date in the input data entries.
+			# Assuming the input data is always sorted, the first one should be the earliest.
+			startTime = ISOTimeString2TimeStamp(data[0]['start_time'])
+
 		else:
+			debug_log('Continuing...')
 			# Resume aggregation from a previous state.
 
+			startTime = state['starttime']
+			# Left over data should be part of the data being processed.
+			data = state['leftover'] + inputData
+
+		startIndex = 0
+
+		# Keep aggregating until all the data is consumed.
+		while startIndex < len(data):
+			# Find the nearest cut-off point.
+			endTimeCutoff = startTime - startTime % cutoffSize + cutoffSize
+			# Scan the input data to find the portion that fits in the cutoff.
+			endIndex = startIndex
+			while endIndex < len(data) and ISOTimeString2TimeStamp(data[endIndex]['end_time']) < endTimeCutoff:
+				endIndex += 1
+
+			# If everything fits in the cutoff, there may be more data in the next run.
+			# Otherwise, these data should be aggregated.
+			if endIndex >= len(data):
+				# End of data reached, but cutoff is not.
+				# Save everything into state.
+				result['state'] = {
+					'starttime': startTime,
+					'leftover': data[startIndex:]
+				}
+			else:
+				# Cutoff reached.
+				# Aggregate this chunk.
+				newPackage = aggregate_chunk(data[startIndex:endIndex], startTime, endTimeCutoff)
+				if newPackage != None:
+					result['packages'].append(newPackage)
+
+			# Update variables for the next loop.
+			startTime = endTimeCutoff
+			startIndex = endIndex
+
+		# The above loop should end with some chunks aggregated into result['packages'],
+		# with the last chunk saved in result['state']['leftover']
+
 	return result
+
+# Helper function for aggregating a chunk of data.
+def aggregate_chunk(dataChunk, startTime, endTime):
+	if len(dataChunk) == 0:
+		# There is nothing to aggregate.
+		return None
+	else:
+		# Prepare the list of properties for aggregation.
+		propertiesList = map(lambda x: x['properties'], dataChunk)
+
+		return {
+			'start_time': startTime,
+			'end_time': endTime,
+			'properties': aggregateProps(propertiesList),
+			'type': 'Feature',
+			'geometry': STATION_GEOMETRY
+		}
+
+def aggregateProps(propertiesList):
+	collection = {}
+
+	for properties in propertiesList:
+		for key in properties:
+			# Properties start with "_" shouldn't be processed.
+			if key.startswith('_'):
+				continue
+			value = properties[key]
+			# Collect property values and save them into collection
+			if key not in collection:
+				collection[key] = [value]
+			else:
+				collection[key].append(value)
+
+	result = {}
+	for key in properties:
+		# If there is no aggregation function, ignore the property.
+		if key not in PROP_AGGREGATE:
+			continue
+		func = PROP_AGGREGATE[key]
+		result[key] = func(collection[key])
+
+	return result
+
+if __name__ == "__main__":
+	size = 5 * 60
+	packages = []
+
+	file = './test-input-1.dat'
+	parse = parse_file(file)
+	result = aggregate(size, parse, None)
+	packages += result['packages']
+	print json.dumps(result['state'])
+
+	file = './test-input-2.dat'
+	parse = parse_file(file)
+	result = aggregate(size, parse, result['state'])
+	packages += result['packages']
+	print json.dumps(result['state'])
+
+	result = aggregate(size, None, result['state'])
+	packages += result['packages']
+	print 'Package Count: %s' % (len(packages))
+
+	packages = []
+
+	file = './test-input-3.dat'
+	parse = parse_file(file)
+	result = aggregate(size, parse, result['state'])
+	packages += result['packages']
+
+	result = aggregate(size, None, result['state'])
+	packages += result['packages']
+	print 'Package Count: %s' % (len(packages))
