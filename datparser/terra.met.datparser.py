@@ -100,7 +100,7 @@ def upload_records(host, key, records):
 # ----------------------------------------------------------------------
 # Process the dataset message and upload the results
 def process_dataset(parameters):
-	global parse_file, extractorName, inputDirectory, outputDirectory, sensorId, streamName, ISO_8601_UTC_OFFSET
+	global parse_file, aggregate, aggregationCutOff, extractorName, inputDirectory, outputDirectory, sensorId, streamName, ISO_8601_UTC_OFFSET
 
 	host = parameters['host']
 	if not host.endswith('/'):
@@ -132,24 +132,50 @@ def process_dataset(parameters):
 
 	datasetUrl = urlparse.urljoin(host, 'datasets/%s' % parameters['datasetId'])
 
-	# Process each file and concatenate results together.
-	for file in files:
-		# Find path in parameters
-		for f in parameters['files']:
-			if os.path.basename(f) == file['filename']:
-				filepath = f
+	#! Files should be sorted for the aggregation to work.
+	aggregationState = None
+	lastAggregatedFile = None
 
-		# Parse one file and get all the records in it.
-		records = parse_file(filepath, utc_offset=ISO_8601_UTC_OFFSET)
+	# Process each file and concatenate results together.
+	# To work with the aggregation process, add an extra NULL file to indicate we are done with all the files.
+	for file in (list(files) + [ None ]):
+		if file == None:
+			# We are done with all the files, finish up aggregation.
+			# Pass None as data into the aggregation to let it wrap up any work left.
+			records = None
+			# The file ID would be the last file processed.
+			fileId = lastAggregatedFile['id']
+		else:
+			# Add this file to the aggregation.
+
+			# Find path in parameters
+			for f in parameters['files']:
+				if os.path.basename(f) == file['filename']:
+					filepath = f
+
+			# Parse one file and get all the records in it.
+			records = parse_file(filepath, utc_offset=ISO_8601_UTC_OFFSET)
+			fileId = file['id']
+
+		aggregationResult = aggregate(
+			cutoffSize=aggregationCutOff,
+			tz=ISO_8601_UTC_OFFSET,
+			inputData=records,
+			state=aggregationState
+		)
+		aggregationState = aggregationResult['state']
+		aggregationRecords = aggregationResult['packages']
 
 		# Add props to each record.
-		for record in records:
+		for record in aggregationRecords:
 			record['source'] = datasetUrl
-			record['file'] = file['id']
+			record['file'] = fileId
 			record['sensor_id'] = str(sensorId)
 			record['stream_id'] = str(streamId)
 
-		upload_records(host, parameters['secretKey'], records)
+		upload_records(host, parameters['secretKey'], aggregationRecords)
+
+		lastAggregatedFile = file
 
 	# Mark dataset as processed.
 	metadata = {
