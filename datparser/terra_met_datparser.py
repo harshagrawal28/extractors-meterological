@@ -54,12 +54,15 @@ class MetDATFileParser(Extractor):
 
 	def check_message(self, connector, host, secret_key, resource, parameters):
 		# Check for expected input files before beginning processing
-		if has_all_files(resource):
-			if has_been_handled(resource):
-				logging.info('skipping %s, dataset already handled' % resource['id'])
-				return CheckMessage.ignore
-			else:
-				return CheckMessage.download
+		if len(get_all_files(resource)) >= 24:
+			md = pyclowder.datasets.download_metadata(connector, host, secret_key,
+													  resource['id'], self.extractor_info['name'])
+			for m in md:
+				if 'agent' in m and 'name' in m['agent'] and m['agent']['name'] == self.extractor_info['name']:
+					logging.info('skipping %s, dataset already handled' % resource['id'])
+					return CheckMessage.ignore
+
+			return CheckMessage.download
 		else:
 			logging.info('skipping %s, not all input files are ready' % resource['id'])
 			return CheckMessage.ignore
@@ -78,7 +81,7 @@ class MetDATFileParser(Extractor):
 			})
 
 		# Find input files in dataset
-		files = get_all_files(parameters)['.dat']
+		files = get_all_files(resource)
 		datasetUrl = urlparse.urljoin(host, 'datasets/%s' % parameters['datasetId'])
 
 		#! Files should be sorted for the aggregation to work.
@@ -122,7 +125,7 @@ class MetDATFileParser(Extractor):
 				record['sensor_id'] = str(self.sensor_id)
 				record['stream_id'] = str(streamId)
 
-			upload_records(host, secret_key, aggregationRecords)
+			upload_datapoints(host, secret_key, aggregationRecords)
 			lastAggregatedFile = file
 
 		# Mark dataset as processed.
@@ -138,13 +141,12 @@ class MetDATFileParser(Extractor):
 		}
 		pyclowder.datasets.upload_metadata(connector, host, secret_key, resource['id'], metadata)
 
-
 # Get stream ID from Clowder based on stream name
 def get_stream_id(host, key, name):
 	if(not host.endswith("/")):
 		host = host+"/"
 
-	url = "%sapi/geostreams/streams?stream_name=%s&key=%s" % (host, name, key)
+	url = urlparse.urljoin(host, 'api/geostreams/streams?stream_name=%s&key=%s' % (name, key))
 	logging.debug("...searching for stream : "+name)
 	r = requests.get(url)
 	if r.status_code == 200:
@@ -153,14 +155,13 @@ def get_stream_id(host, key, name):
 			if 'name' in s and s['name'] == name:
 				return s['id']
 	else:
-		print("error searching for stream ID")
+		logging.error("error searching for stream ID")
 
 	return None
 
 def create_stream(host, key, sensor_id, name, geom):
 	if(not host.endswith("/")):
 		host = host+"/"
-
 	body = {
 		"name": name,
 		"type": "point",
@@ -168,8 +169,8 @@ def create_stream(host, key, sensor_id, name, geom):
 		"properties": {},
 		"sensor_id": sensor_id
 	}
+	url = urlparse.urljoin(host, 'api/geostreams/streams?key=%s' % key)
 
-	url = "%sapi/geostreams/streams?key=%s" % (host, key)
 	logging.info("...creating new stream: "+name)
 	r = requests.post(url,
 					  data=json.dumps(body),
@@ -181,73 +182,35 @@ def create_stream(host, key, sensor_id, name, geom):
 
 	return None
 
-#! Save records as JSON back to GeoStream.
-def upload_records(host, key, records):
+# Save records as JSON back to GeoStream.
+def upload_datapoints(host, key, records):
 	url = urlparse.urljoin(host, 'api/geostreams/datapoints?key=%s' % key)
 
 	for record in records:
 		headers = {'Content-type': 'application/json'}
 		r = requests.post(url, data=json.dumps(record), headers=headers)
 		if (r.status_code != 200):
-			print 'ERR : Problem creating datapoint : [%s] - %s' % (str(r.status_code), r.text)
+			logging.error('Problem creating datapoint : [%s] - %s' % (str(r.status_code), r.text))
 	return
 
 # Find as many expected files as possible and return the set.
 def get_all_files(resource):
-	# We need 24 `.dat` files.
-	requiredInputFiles = {
-		'.dat': 24
-	}
+	target_files = []
 
-	# `files` is a dictionary of arrays of file descriptors.
-	# files: {Dict.<List.<File>>}
-	files = dict()
-	for fileExt in requiredInputFiles:
-		files[fileExt] = []
-
-	if 'filelist' in parameters:
-		for fileItem in parameters['filelist']:
+	if 'files' in resource:
+		for fileItem in resource['files']:
 			fileId   = fileItem['id']
 			fileName = fileItem['filename']
-			for fileExt in files:
-				if fileName[-len(fileExt):] == fileExt:
-					files[fileExt].append({
-						'id': fileId,
-						'filename': fileName
-					})
-	return files
+			if fileName.endswith(".dat"):
+				target_files.append({
+					'id': fileId,
+					'filename': fileName
+				})
+
+	return target_files
 
 def get_output_filename(raw_filename):
 	return '%s.nc' % raw_filename[:-len('_raw')]
-
-# Returns true if all expected files are found.
-def has_all_files(resource):
-	# We need 24 `.dat` files.
-	requiredInputFiles = {
-		'.dat': 24
-	}
-
-	files = get_all_files(resource)
-	allFilesFound = True
-	for fileExt in requiredInputFiles:
-		if len(files[fileExt]) < requiredInputFiles[fileExt]:
-			allFilesFound = False
-	return allFilesFound
-
-def has_been_handled(parameters):
-	global extractorName
-
-	if 'filelist' not in parameters:
-		return False
-	if not has_all_files(parameters):
-		return False
-	# Check metadata.
-	md = extractors.download_dataset_metadata_jsonld(parameters['host'], parameters['secretKey'], parameters['datasetId'], extractorName)
-	for m in md:
-		if 'agent' in m and 'name' in m['agent'] and m['agent']['name'] == extractorName:
-			return True
-
-	return False
 
 if __name__ == "__main__":
 	extractor = MetDATFileParser()
