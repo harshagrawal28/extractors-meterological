@@ -81,7 +81,7 @@ class MetDATFileParser(Extractor):
 
 		# Find input files in dataset
 		files = get_all_files(resource)
-		datasetUrl = urlparse.urljoin(host, 'datasets/%s' % parameters['datasetId'])
+		datasetUrl = urlparse.urljoin(host, 'datasets/%s' % resource['id'])
 
 		#! Files should be sorted for the aggregation to work.
 		aggregationState = None
@@ -100,7 +100,7 @@ class MetDATFileParser(Extractor):
 				# Add this file to the aggregation.
 
 				# Find path in parameters
-				for f in parameters['files']:
+				for f in resource['files']:
 					if os.path.basename(f) == file['filename']:
 						filepath = f
 
