@@ -80,7 +80,7 @@ class MetDATFileParser(Extractor):
 			})
 
 		# Find input files in dataset
-		files = get_all_files(resource)
+		target_files = get_all_files(resource)
 		datasetUrl = urlparse.urljoin(host, 'datasets/%s' % resource['id'])
 
 		#! Files should be sorted for the aggregation to work.
@@ -89,7 +89,7 @@ class MetDATFileParser(Extractor):
 
 		# Process each file and concatenate results together.
 		# To work with the aggregation process, add an extra NULL file to indicate we are done with all the files.
-		for file in (list(files) + [ None ]):
+		for file in (list(target_files) + [ None ]):
 			if file == None:
 				# We are done with all the files, finish up aggregation.
 				# Pass None as data into the aggregation to let it wrap up any work left.
@@ -98,9 +98,9 @@ class MetDATFileParser(Extractor):
 				fileId = lastAggregatedFile['id']
 			else:
 				# Add this file to the aggregation.
-				for f in resource['files']:
-					if os.path.basename(f) == f['filename']:
-						filepath = f
+				for p in resource['local_paths']:
+					if os.path.basename(p) == file['filename']:
+						filepath = p
 
 				# Parse one file and get all the records in it.
 				records = parse_file(filepath, utc_offset=ISO_8601_UTC_OFFSET)
