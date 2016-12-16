@@ -71,11 +71,10 @@ class MetDATFileParser(Extractor):
 		ISO_8601_UTC_OFFSET = dateutil.tz.tzoffset("-07:00", -7 * 60 * 60)
 
 		# Look for stream.
-		streamName = "weather station"
-		# Metadata for datapoint properties
-		stream_id = get_stream_id(host, secret_key, sensor_name)
+		stream_name = "weather station"
+		stream_id = get_stream_id(host, secret_key, stream_name)
 		if not stream_id:
-			stream_id = create_stream(host, secret_key, self.sensor_id, sensor_name, {
+			stream_id = create_stream(host, secret_key, self.sensor_id, stream_name, {
 				"type": "Point",
 				"coordinates": [0,0]
 			})
@@ -123,7 +122,7 @@ class MetDATFileParser(Extractor):
 				record['source'] = datasetUrl
 				record['file'] = fileId
 				record['sensor_id'] = str(self.sensor_id)
-				record['stream_id'] = str(streamId)
+				record['stream_id'] = str(stream_id)
 
 			upload_datapoints(host, secret_key, aggregationRecords)
 			lastAggregatedFile = file
