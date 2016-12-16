@@ -117,9 +117,8 @@ class MetDATFileParser(Extractor):
 
 			# Add props to each record.
 			for record in aggregationRecords:
-				record['source'] = datasetUrl
-				record['file'] = fileId
-				record['sensor_id'] = str(self.sensor_id)
+				record['properties']['source'] = datasetUrl
+				record['properties']['source_file'] = fileId
 				record['stream_id'] = str(stream_id)
 
 			upload_datapoints(host, secret_key, aggregationRecords)

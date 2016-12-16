@@ -313,7 +313,7 @@ def aggregate_chunk(dataChunk, tz, startTime, endTime):
 			'start_time': datetime.datetime.fromtimestamp(startTime, tz).isoformat(),
 			'end_time': datetime.datetime.fromtimestamp(endTime, tz).isoformat(),
 			'properties': aggregateProps(propertiesList),
-			'type': 'Feature',
+			'type': 'Point',
 			'geometry': STATION_GEOMETRY
 		}
 
