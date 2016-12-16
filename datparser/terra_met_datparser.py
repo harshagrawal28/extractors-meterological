@@ -98,10 +98,8 @@ class MetDATFileParser(Extractor):
 				fileId = lastAggregatedFile['id']
 			else:
 				# Add this file to the aggregation.
-
-				# Find path in parameters
 				for f in resource['files']:
-					if os.path.basename(f) == file['filename']:
+					if os.path.basename(f) == f['filename']:
 						filepath = f
 
 				# Parse one file and get all the records in it.
