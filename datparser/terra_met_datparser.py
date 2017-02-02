@@ -33,9 +33,9 @@ class MetDATFileParser(Extractor):
 		# add any additional arguments to parser
 		# self.parser.add_argument('--max', '-m', type=int, nargs='?', default=-1,
 		#                          help='maximum number (default=-1)')
-		self.parser.add_argument('--sensor', dest="sensor_id", type=str, nargs='?',
-								 default=('2'),
-								 help="sensor ID where streams and datapoints should be posted")
+		self.parser.add_argument('--sensor', dest="sensor_name", type=str, nargs='?',
+								 default=('Full Field'),
+								 help="sensor name where streams and datapoints should be posted")
 		self.parser.add_argument('--aggregation', dest="agg_cutoff", type=int, nargs='?',
 								 default=(300),
 								 help="minute chunks to aggregate records into (default is 5 mins)")
@@ -49,7 +49,7 @@ class MetDATFileParser(Extractor):
 		logging.getLogger('__main__').setLevel(logging.DEBUG)
 
 		# assign other arguments
-		self.sensor_id = self.args.sensor_id
+		self.sensor_name = self.args.sensor_name
 		self.agg_cutoff = self.args.agg_cutoff
 
 	def check_message(self, connector, host, secret_key, resource, parameters):
@@ -69,14 +69,24 @@ class MetDATFileParser(Extractor):
 
 	def process_message(self, connector, host, secret_key, resource, parameters):
 		ISO_8601_UTC_OFFSET = dateutil.tz.tzoffset("-07:00", -7 * 60 * 60)
+		main_coords = [ -111.974304, 33.075576, 0]
 
-		# Look for stream.
-		stream_name = "weather station"
+		# SENSOR is Full Field by default
+		sensor_id = get_sensor_id(host, secret_key, self.sensor_name)
+		if not sensor_id:
+			sensor_id = create_sensor(host, secret_key, self.sensor_name, {
+				"type": "Point",
+				# These are a point off to the right of the field
+				"coordinates": main_coords
+			})
+
+		# STREAM is Weather Station
+		stream_name = "Weather Station"
 		stream_id = get_stream_id(host, secret_key, stream_name)
 		if not stream_id:
-			stream_id = create_stream(host, secret_key, self.sensor_id, stream_name, {
+			stream_id = create_stream(host, secret_key, self.sensor_name, stream_name, {
 				"type": "Point",
-				"coordinates": [0,0]
+				"coordinates": main_coords
 			})
 
 		# Find input files in dataset
@@ -119,6 +129,7 @@ class MetDATFileParser(Extractor):
 			for record in aggregationRecords:
 				record['properties']['source'] = datasetUrl
 				record['properties']['source_file'] = fileId
+
 				record['stream_id'] = str(stream_id)
 
 			upload_datapoints(host, secret_key, aggregationRecords)
@@ -136,6 +147,56 @@ class MetDATFileParser(Extractor):
 			}
 		}
 		pyclowder.datasets.upload_metadata(connector, host, secret_key, resource['id'], metadata)
+
+# Get sensor ID from Clowder based on plot name
+def get_sensor_id(host, key, name):
+	if(not host.endswith("/")):
+		host = host+"/"
+
+	url = "%sapi/geostreams/sensors?sensor_name=%s&key=%s" % (host, name, key)
+	logging.debug("...searching for sensor : "+name)
+	r = requests.get(url)
+	if r.status_code == 200:
+		json_data = r.json()
+		for s in json_data:
+			if 'name' in s and s['name'] == name:
+				return s['id']
+	else:
+		print("error searching for sensor ID")
+
+	return None
+
+def create_sensor(host, key, name, geom):
+	if(not host.endswith("/")):
+		host = host+"/"
+
+	body = {
+		"name": name,
+		"type": "point",
+		"geometry": geom,
+		"properties": {
+			"popupContent": name,
+			"type": {
+				"id": "LemnaTec",
+				"title": "LemnaTec Field Scanalyzer",
+				"sensorType": 4
+			},
+			"name": name,
+			"region": "Maricopa"
+		}
+	}
+
+	url = "%sapi/geostreams/sensors?key=%s" % (host, key)
+	logging.info("...creating new sensor: "+name)
+	r = requests.post(url,
+					  data=json.dumps(body),
+					  headers={'Content-type': 'application/json'})
+	if r.status_code == 200:
+		return r.json()['id']
+	else:
+		logging.error("error creating sensor")
+
+	return None
 
 # Get stream ID from Clowder based on stream name
 def get_stream_id(host, key, name):
@@ -158,15 +219,16 @@ def get_stream_id(host, key, name):
 def create_stream(host, key, sensor_id, name, geom):
 	if(not host.endswith("/")):
 		host = host+"/"
+
 	body = {
 		"name": name,
-		"type": "point",
+		"type": "Feature",
 		"geometry": geom,
 		"properties": {},
-		"sensor_id": sensor_id
+		"sensor_id": str(sensor_id)
 	}
-	url = urlparse.urljoin(host, 'api/geostreams/streams?key=%s' % key)
 
+	url = "%sapi/geostreams/streams?key=%s" % (host, key)
 	logging.info("...creating new stream: "+name)
 	r = requests.post(url,
 					  data=json.dumps(body),
