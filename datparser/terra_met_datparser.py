@@ -54,7 +54,7 @@ class MetDATFileParser(Extractor):
 
 	def check_message(self, connector, host, secret_key, resource, parameters):
 		# Check for expected input files before beginning processing
-		if len(get_all_files(resource)) >= 24:
+		if len(get_all_files(resource)) >= 23:
 			md = pyclowder.datasets.download_metadata(connector, host, secret_key,
 													  resource['id'], self.extractor_info['name'])
 			for m in md:
