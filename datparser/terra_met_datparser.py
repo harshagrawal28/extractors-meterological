@@ -142,8 +142,8 @@ class MetDATFileParser(Extractor):
 			"dataset_id": resource['id'],
 			"content": {"status": "COMPLETED"},
 			"agent": {
-				"@type": "cat:extractor",
-				"name": host + "/api/extractors/" + self.extractor_info['name']
+				"@type": "extractor",
+				"extractor_id": host + "/api/extractors/" + self.extractor_info['name']
 			}
 		}
 		pyclowder.datasets.upload_metadata(connector, host, secret_key, resource['id'], metadata)
