@@ -177,8 +177,8 @@ def create_sensor(host, key, name, geom):
 		"properties": {
 			"popupContent": name,
 			"type": {
-				"id": "LemnaTec",
-				"title": "LemnaTec Field Scanalyzer",
+				"id": "MAC Field Scanner",
+				"title": "MAC Field Scanner",
 				"sensorType": 4
 			},
 			"name": name,
