@@ -58,7 +58,7 @@ class MetDATFileParser(Extractor):
 			md = pyclowder.datasets.download_metadata(connector, host, secret_key,
 													  resource['id'], self.extractor_info['name'])
 			for m in md:
-				if 'agent' in m and 'name' in m['agent'] and m['agent']['name'] == self.extractor_info['name']:
+				if 'agent' in m and 'name' in m['agent'] and m['agent']['name'].endswith(self.extractor_info['name']):
 					logging.info('skipping %s, dataset already handled' % resource['id'])
 					return CheckMessage.ignore
 
