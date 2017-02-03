@@ -81,10 +81,10 @@ class MetDATFileParser(Extractor):
 			})
 
 		# STREAM is Weather Station
-		stream_name = "Weather Station"
+		stream_name = self.sensor_name + " - Weather Station"
 		stream_id = get_stream_id(host, secret_key, stream_name)
 		if not stream_id:
-			stream_id = create_stream(host, secret_key, self.sensor_name, stream_name, {
+			stream_id = create_stream(host, secret_key, sensor_id, stream_name, {
 				"type": "Point",
 				"coordinates": main_coords
 			})
@@ -236,7 +236,7 @@ def create_stream(host, key, sensor_id, name, geom):
 	if r.status_code == 200:
 		return r.json()['id']
 	else:
-		logging.error("error creating stream")
+		logging.error("error creating stream: %s" % r.status_code)
 
 	return None
 
