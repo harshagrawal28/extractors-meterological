@@ -1,0 +1,18 @@
+{
+  "@context": "http://clowder.ncsa.illinois.edu/contexts/extractors.jsonld",
+  "name": "terra.met.energyfarm.datparser",
+  "version": "1.0",
+  "description": "Meteorological DAT file parser",
+  "contributors": [],
+  "contexts": [],
+  "repository": {"repType": "git", "repUrl": "https://github.com/terraref/extractors-meterological.git"},
+  "process": {
+    "file":[
+	"application/octet-stream",
+	"application/json"	
+	]
+  },
+  "external_services": [],
+  "dependencies": [],
+  "bibtex": []
+}
